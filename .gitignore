@@ -5,6 +5,7 @@ __pycache__/
 # model files (optional)
 backend/model/model.pkl
 backend/model/vectorizer.pkl
+data/
 
 # node
 node_modules/
