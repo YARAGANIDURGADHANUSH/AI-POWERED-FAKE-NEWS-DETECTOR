@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+
+# model files (optional)
+backend/model/model.pkl
+backend/model/vectorizer.pkl
+
+# node
+node_modules/
+
+# env
+.env
+
+# OS
+.DS_Store
+Thumbs.db
