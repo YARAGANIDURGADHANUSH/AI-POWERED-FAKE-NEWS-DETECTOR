@@ -16,10 +16,12 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
+# ✅ SAFE INIT (NO CRASH)
 if not GROQ_API_KEY:
-    raise ValueError("❌ GROQ_API_KEY missing")
-
-client = Groq(api_key=GROQ_API_KEY)
+    print("⚠️ GROQ_API_KEY missing — running in fallback mode")
+    client = None
+else:
+    client = Groq(api_key=GROQ_API_KEY)
 
 
 # 🔹 Extract content
@@ -37,8 +39,12 @@ def extract_text(url):
         return ""
 
 
-# 🔹 LLM Judge (STABLE VERSION)
+# 🔹 LLM Judge (SAFE)
 def llm_judge(claim, ranked_sources):
+    if client is None:
+        print("⚠️ Skipping LLM (no API key)")
+        return None
+
     context = ""
 
     for s in ranked_sources[:3]:
@@ -56,7 +62,6 @@ Evidence:
 Rules:
 - Use ONLY labels: REAL, FAKE, PARTIALLY TRUE, UNCERTAIN
 - Return ONLY valid JSON
-- No extra text
 
 Format:
 {{
@@ -66,39 +71,33 @@ Format:
 }}
 """
 
-    for attempt in range(2):  # retry
+    for _ in range(2):
         try:
             response = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0,  # 🔥 FIXED (deterministic)
+                temperature=0,
             )
 
             raw = response.choices[0].message.content.strip()
-            print("🧠 RAW LLM:", raw)
-
             match = re.search(r"\{.*\}", raw, re.DOTALL)
 
             if match:
                 parsed = json.loads(match.group())
 
-                # 🔥 Validate label
                 valid = ["REAL", "FAKE", "PARTIALLY TRUE", "UNCERTAIN"]
-                if parsed.get("label") not in valid:
-                    raise ValueError("Invalid label")
-
-                return parsed
+                if parsed.get("label") in valid:
+                    return parsed
 
         except Exception as e:
-            print("⚠️ LLM retry error:", e)
+            print("⚠️ LLM error:", e)
 
-    return None  # fallback trigger
+    return None
 
 
 # 🔹 MAIN PIPELINE
 def rag_pipeline(claim):
     try:
-        # 🔹 Step 1: Web search
         web_result = verify_with_web(claim)
         urls = web_result.get("sources", [])
 
@@ -111,7 +110,6 @@ def rag_pipeline(claim):
                 "sources": []
             }
 
-        # 🔹 Step 2: Extract content
         documents = []
         enriched_sources = []
 
@@ -135,86 +133,51 @@ def rag_pipeline(claim):
                 "sources": []
             }
 
-        # 🔹 Step 3: Similarity
         sim_scores = compute_similarity(claim, documents)
 
-        # 🔹 Step 4: Credibility scoring
         scored_sources = score_sources(
             [s["url"] for s in enriched_sources],
             sim_scores
         )
 
-        # 🔹 Merge text
         for i, s in enumerate(scored_sources):
             s["text"] = enriched_sources[i]["text"]
             s["snippet"] = enriched_sources[i]["snippet"]
 
-        # 🔹 Step 5: Rank
         ranked_sources = sorted(
             scored_sources,
             key=lambda x: x["credibility"],
             reverse=True
         )
 
-        # 🔹 Step 6: Detect contradictions
         contradictions = detect_contradictions(claim, ranked_sources)
 
-        # 🔹 Step 7: LLM decision
         result = llm_judge(claim, ranked_sources)
 
-        # 🔥 Step 8: Fallback logic (if LLM fails)
-        if not result or "label" not in result:
-            print("⚠️ Using fallback logic")
+        # 🔥 FALLBACK LOGIC
+        if not result:
+            high_cred = [s for s in ranked_sources if s["credibility"] > 70]
 
-            high_cred_sources = [
-                s for s in ranked_sources if s["credibility"] > 70
-            ]
-
-            if any("no evidence" in s["text"].lower() for s in high_cred_sources):
-                label = "FAKE"
-                explanation = "Reliable sources report no evidence supporting the claim."
-                confidence = 0.75
-
-            elif len(high_cred_sources) >= 2:
-                label = "REAL"
-                explanation = "Multiple credible sources support the claim."
-                confidence = 0.7
-
-            else:
-                label = "UNCERTAIN"
-                explanation = "Insufficient reliable evidence."
-                confidence = 0.5
+            if len(high_cred) >= 2:
+                return {
+                    "label": "REAL",
+                    "confidence": 0.7,
+                    "explanation": "Multiple reliable sources support this.",
+                    "differences": contradictions,
+                    "sources": ranked_sources[:3]
+                }
 
             return {
-                "label": label,
-                "confidence": confidence,
-                "explanation": explanation,
+                "label": "UNCERTAIN",
+                "confidence": 0.5,
+                "explanation": "Insufficient evidence.",
                 "differences": contradictions,
                 "sources": ranked_sources[:3]
             }
 
-        # 🔹 Step 9: Hybrid logic (FIXED)
-        final_label = result.get("label", "UNCERTAIN")
-        confidence = result.get("confidence", 0.5)
-
-        # 🔥 FIXED: progressive downgrade (NOT force FAKE)
-        if contradictions:
-            if final_label == "REAL":
-                final_label = "PARTIALLY TRUE"
-            elif final_label == "PARTIALLY TRUE":
-                final_label = "FAKE"
-
-            confidence = min(1.0, confidence + 0.1)
-
-        # 🔹 Boost for strong sources
-        if ranked_sources and ranked_sources[0]["credibility"] > 80:
-            confidence += 0.1
-
-        confidence = round(min(confidence, 1.0), 2)
-
         return {
-            "label": final_label,
-            "confidence": confidence,
+            "label": result.get("label", "UNCERTAIN"),
+            "confidence": round(result.get("confidence", 0.5), 2),
             "explanation": result.get("explanation", ""),
             "differences": contradictions,
             "sources": ranked_sources[:3]
