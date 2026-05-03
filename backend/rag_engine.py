@@ -11,12 +11,10 @@ import os
 import json
 import re
 
-# 🔹 Load env
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# ✅ SAFE INIT (NO CRASH)
 if not GROQ_API_KEY:
     print("⚠️ GROQ_API_KEY missing — running in fallback mode")
     client = None
@@ -24,46 +22,42 @@ else:
     client = Groq(api_key=GROQ_API_KEY)
 
 
-# 🔹 Extract content
 def extract_text(url):
     try:
-        res = requests.get(url, timeout=5)
+        res = requests.get(url, timeout=10)  # ✅ increased from 5 to 10
         soup = BeautifulSoup(res.text, "html.parser")
-
         paragraphs = soup.find_all("p")
         text = " ".join([p.get_text() for p in paragraphs[:10]])
-
         return text[:1500]
     except Exception as e:
         print("❌ EXTRACT ERROR:", e)
         return ""
 
 
-# 🔹 LLM Judge (SAFE)
 def llm_judge(claim, ranked_sources):
     if client is None:
         print("⚠️ Skipping LLM (no API key)")
         return None
 
     context = ""
-
     for s in ranked_sources[:3]:
         context += f"\nSOURCE: {s['url']}\nCONTENT: {s.get('text','')[:600]}\n"
 
     prompt = f"""
-You are a strict fact-checking AI.
+You are a strict fact-checking AI with strong scientific and general knowledge.
 
-Claim:
-{claim}
+Claim: "{claim}"
 
-Evidence:
+Evidence from web sources:
 {context}
 
-Rules:
-- Use ONLY labels: REAL, FAKE, PARTIALLY TRUE, UNCERTAIN
-- Return ONLY valid JSON
+Instructions:
+- Use your OWN knowledge in addition to the evidence above
+- If the claim contradicts basic science or well-known facts, label it FAKE regardless of sources
+- Examples: "sun rises from west" = FAKE, "earth is flat" = FAKE
+- Use ONLY these labels: REAL, FAKE, PARTIALLY TRUE, UNCERTAIN
+- Return ONLY valid JSON, no extra text
 
-Format:
 {{
   "label": "REAL or FAKE or PARTIALLY TRUE or UNCERTAIN",
   "confidence": 0.0,
@@ -77,14 +71,15 @@ Format:
                 model="llama-3.3-70b-versatile",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
+                timeout=30,  # ✅ added timeout
             )
 
             raw = response.choices[0].message.content.strip()
+            print("🧠 RAW LLM:", raw)
             match = re.search(r"\{.*\}", raw, re.DOTALL)
 
             if match:
                 parsed = json.loads(match.group())
-
                 valid = ["REAL", "FAKE", "PARTIALLY TRUE", "UNCERTAIN"]
                 if parsed.get("label") in valid:
                     return parsed
@@ -95,7 +90,6 @@ Format:
     return None
 
 
-# 🔹 MAIN PIPELINE
 def rag_pipeline(claim):
     try:
         web_result = verify_with_web(claim)
@@ -115,7 +109,6 @@ def rag_pipeline(claim):
 
         for url in urls[:5]:
             text = extract_text(url)
-
             if text:
                 documents.append(text)
                 enriched_sources.append({
@@ -151,14 +144,30 @@ def rag_pipeline(claim):
         )
 
         contradictions = detect_contradictions(claim, ranked_sources)
-
         result = llm_judge(claim, ranked_sources)
 
-        # 🔥 FALLBACK LOGIC
+        # ✅ IMPROVED FALLBACK
         if not result:
             high_cred = [s for s in ranked_sources if s["credibility"] > 70]
 
-            if len(high_cred) >= 2:
+            contradiction_texts = [
+                s["text"].lower() for s in high_cred
+                if any(phrase in s["text"].lower() for phrase in [
+                    "rises from the east", "not from the west", "false", "myth",
+                    "incorrect", "no evidence", "debunked", "refutes",
+                    "fake", "hoax", "misleading", "wrong"
+                ])
+            ]
+
+            if contradiction_texts:
+                return {
+                    "label": "FAKE",
+                    "confidence": 0.85,
+                    "explanation": "Credible sources contradict this claim.",
+                    "differences": contradictions,
+                    "sources": ranked_sources[:3]
+                }
+            elif len(high_cred) >= 2:
                 return {
                     "label": "REAL",
                     "confidence": 0.7,
@@ -166,14 +175,14 @@ def rag_pipeline(claim):
                     "differences": contradictions,
                     "sources": ranked_sources[:3]
                 }
-
-            return {
-                "label": "UNCERTAIN",
-                "confidence": 0.5,
-                "explanation": "Insufficient evidence.",
-                "differences": contradictions,
-                "sources": ranked_sources[:3]
-            }
+            else:
+                return {
+                    "label": "UNCERTAIN",
+                    "confidence": 0.5,
+                    "explanation": "Insufficient evidence.",
+                    "differences": contradictions,
+                    "sources": ranked_sources[:3]
+                }
 
         return {
             "label": result.get("label", "UNCERTAIN"),
