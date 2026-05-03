@@ -3,7 +3,6 @@ uvicorn
 scikit-learn
 pandas
 numpy
-sentence-transformers
 beautifulsoup4
 requests
 groq
