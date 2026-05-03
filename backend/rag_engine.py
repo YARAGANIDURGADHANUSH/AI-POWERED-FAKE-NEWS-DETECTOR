@@ -1,7 +1,7 @@
-from backend.web_verifier import verify_with_web
-from backend.similarity_engine import compute_similarity
-from backend.credibility_engine import score_sources
-from backend.contradiction_engine import detect_contradictions
+from web_verifier import verify_with_web
+from similarity_engine import compute_similarity
+from credibility_engine import score_sources
+from contradiction_engine import detect_contradictions
 
 import requests
 from bs4 import BeautifulSoup
