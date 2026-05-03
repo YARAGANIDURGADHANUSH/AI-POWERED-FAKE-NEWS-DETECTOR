@@ -16,7 +16,7 @@ export default function FactChecker() {
     setResult(null);
 
     try {
-      const response = await fetch(BACKEND_URL, {
+      const response = await fetch("http://127.0.0.1:8000/verify", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
