@@ -1,5 +1,5 @@
 import pickle
-from backend.utils.preprocess import clean_text
+from utils.preprocess import clean_text
 
 # Load model once (efficient)
 model = pickle.load(open("backend/model/model.pkl", "rb"))
