@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const BACKEND_URL = "https://ai-powered-fake-news-detector.onrender.com/verify";
+const BACKEND_URL = "https://ai-powered-fake-news-detector-production.up.railway.app/verify";
 
 const styles = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
