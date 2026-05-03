@@ -3,11 +3,10 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.predictor import predict_news
-from backend.hybrid_predictor import hybrid_predict   # 🔥 NEW
+from backend.hybrid_predictor import hybrid_predict   # ✅ THIS LINE MUST MATCH
 
 app = FastAPI()
 
-# ✅ CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,7 +15,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Request schema
 class NewsRequest(BaseModel):
     news: str
 
@@ -24,12 +22,10 @@ class NewsRequest(BaseModel):
 def home():
     return {"message": "Fake News Detector API is running"}
 
-# 🧠 OLD ML endpoint
 @app.post("/predict")
 def predict(request: NewsRequest):
     return predict_news(request.news)
 
-# 🔥 NEW HYBRID endpoint
 @app.post("/verify")
 def verify(request: NewsRequest):
     return hybrid_predict(request.news)
