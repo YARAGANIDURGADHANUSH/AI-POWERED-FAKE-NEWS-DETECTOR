@@ -2,11 +2,13 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.predictor import predict_news
-from backend.hybrid_predictor import hybrid_predict   # ✅ THIS LINE MUST MATCH
+# ✅ FIXED IMPORTS
+from predictor import predict_news
+from hybrid_predictor import hybrid_predict
 
 app = FastAPI()
 
+# ✅ CORS (correct)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
