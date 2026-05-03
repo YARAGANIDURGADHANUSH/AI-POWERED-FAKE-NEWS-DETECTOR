@@ -19,6 +19,10 @@ class NewsRequest(BaseModel):
 def home():
     return {"message": "Fake News Detector API is running"}
 
+@app.get("/ping")  # ✅ keep-alive endpoint
+def ping():
+    return {"status": "alive"}
+
 @app.post("/verify")
 def verify(request: NewsRequest):
     try:
