@@ -6,6 +6,12 @@ def get_domain(url):
     return urlparse(url).netloc.replace("www.", "")
 
 
+def bias_penalty(bias):
+    if bias in ["left", "right"]:
+        return 0.9
+    return 1.0
+
+
 def score_sources(urls, sim_scores):
     sources = []
 
@@ -35,11 +41,14 @@ def compute_scores(sources):
 
     for s in sources:
         cred = s["credibility"] / 100
+        bias_factor = bias_penalty(s.get("bias", "unknown"))
+
+        weight = cred * bias_factor
 
         if s["stance"] == "support":
-            support += cred
+            support += weight
         elif s["stance"] == "refute":
-            refute += cred
+            refute += weight
 
     return support, refute
 
