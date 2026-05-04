@@ -1,7 +1,6 @@
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import geoData from "./assets/india_states_small.json";
-import { useState } from "react";
 
 const getColor = (intensity) => {
   return intensity > 0.75 ? "#ff0000" :
@@ -11,8 +10,6 @@ const getColor = (intensity) => {
 };
 
 export default function MapView({ onRegionSelect }) {
-  const [selectedState, setSelectedState] = useState(null);
-
   // 🔥 Fake heatmap values (replace later with real backend)
   const fakeHeatData = {
     "Andhra Pradesh": 0.7,
@@ -36,7 +33,6 @@ export default function MapView({ onRegionSelect }) {
 
     layer.on({
       click: () => {
-        setSelectedState(state);
         onRegionSelect(state);
       },
       mouseover: (e) => {

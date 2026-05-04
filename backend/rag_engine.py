@@ -3,6 +3,7 @@ from analysis_engine import compute_similarity, analyze_content_llm
 from scoring_engine import score_sources, compute_scores, compute_confidence, decide_label
 from geo_news_engine import verify_geo_news
 from claim_classifier import classify_claim
+from geo_store import update_state   # 🔥 NEW
 
 import requests
 from bs4 import BeautifulSoup
@@ -43,7 +44,6 @@ def rag_pipeline(claim):
             "sources": []
         }
 
-    # 🌐 Web search
     web = verify_with_web(claim)
     urls = web["sources"][:5]
 
@@ -86,7 +86,9 @@ def rag_pipeline(claim):
 
     support, refute = compute_scores(analyzed)
     label = decide_label(support, refute)
-    confidence = compute_confidence(support, refute, analyzed)
+
+    # ✅ FIXED HERE
+    confidence = compute_confidence(support, refute, len(analyzed))
 
     return {
         "label": label,
@@ -97,14 +99,13 @@ def rag_pipeline(claim):
 
 
 # ----------------------------
-# GEO PIPELINE (FIXED)
+# GEO PIPELINE (FINAL)
 # ----------------------------
 def rag_pipeline_geo(claim, country, region):
     print("🌍 GEO PIPELINE")
 
     claim_type = classify_claim(claim)
 
-    # 🚨 SAME ROUTING (IMPORTANT)
     if claim_type == "NONSENSE":
         return {
             "label": "FAKE",
@@ -163,7 +164,6 @@ def rag_pipeline_geo(claim, country, region):
         elif relation == "contradict":
             stance = "refute"
 
-        # 🔥 ADD BIAS DETECTION
         domain = s["domain"]
         bias = "unknown"
 
@@ -177,12 +177,15 @@ def rag_pipeline_geo(claim, country, region):
             "bias": bias
         })
 
-    # 🧠 DECISION
     support, refute = compute_scores(analyzed)
     label = decide_label(support, refute)
-    confidence = compute_confidence(support, refute, analyzed)
 
-    # 📍 Regional display
+    # ✅ FIXED
+    confidence = compute_confidence(support, refute, len(analyzed))
+
+    # 🔥 VERY IMPORTANT (heatmap update)
+    update_state(region, label)
+
     regional_view = [
         {
             "name": src["name"],

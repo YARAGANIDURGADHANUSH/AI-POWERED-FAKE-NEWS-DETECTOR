@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from geo_store import get_heatmap
+from geo_store import get_leaderboard, get_trends
 from fastapi.middleware.cors import CORSMiddleware
 
 from rag_engine import rag_pipeline
@@ -44,6 +46,21 @@ def predict(request: NewsRequest):
         "message": "Deprecated endpoint. Use /verify instead.",
         "status": "deprecated"
     }
+
+@app.get("/geo-heatmap")
+def geo_heatmap():
+    return get_heatmap()
+
+
+@app.get("/geo-leaderboard")
+def geo_leaderboard():
+    return get_leaderboard()
+
+
+@app.get("/geo-trends/{state}")
+def geo_trends(state: str):
+    return get_trends(state)
+
 
 class GeoRequest(BaseModel):
     news: str
