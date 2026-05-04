@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import MapView from "./MapView";
+import AppRouter from "./router/AppRouter";
+
 
 const BACKEND_URL = "https://ai-powered-fake-news-detector-production.up.railway.app";
 
