@@ -1,20 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MapView from "./MapView";
 
 const BACKEND_URL = "https://ai-powered-fake-news-detector-production.up.railway.app";
 
-const VERDICT_CONFIG = {
-  REAL: { color: "#22c55e", emoji: "✅", label: "REAL" },
-  FAKE: { color: "#ef4444", emoji: "❌", label: "FAKE" },
-  "PARTIALLY TRUE": { color: "#f59e0b", emoji: "⚠️", label: "PARTIALLY TRUE" },
-  UNCERTAIN: { color: "#6b7280", emoji: "❓", label: "UNCERTAIN" }
+const VERDICT = {
+  REAL: { color: "#22c55e", emoji: "✅" },
+  FAKE: { color: "#ef4444", emoji: "❌" },
+  "PARTIALLY TRUE": { color: "#f59e0b", emoji: "⚠️" },
+  UNCERTAIN: { color: "#9ca3af", emoji: "❓" }
 };
 
 export default function GeoPage() {
-  const [claim, setClaim] = useState("");
-  const [country, setCountry] = useState("india");
-  const [region, setRegion] = useState("Andhra Pradesh");
+  const navigate = useNavigate();
 
+  const [claim, setClaim] = useState("");
+  const [region, setRegion] = useState("Andhra Pradesh");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -27,78 +28,78 @@ export default function GeoPage() {
     try {
       const res = await fetch(`${BACKEND_URL}/geo-verify`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
           news: claim,
-          country,
+          country: "india",
           region
         })
       });
 
       const data = await res.json();
       setResult(data);
-    } catch (err) {
-      console.error(err);
+    } catch (e) {
+      console.error(e);
     }
 
     setLoading(false);
   };
 
-  const vc = VERDICT_CONFIG[result?.label] || {};
+  const vc = VERDICT[result?.label] || {};
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(to bottom, #020617, #0f172a)",
+      background: "radial-gradient(circle at top, #020617, #020617 40%, #0f172a)",
       padding: "40px",
-      color: "#fff"
+      color: "#fff",
+      fontFamily: "Inter, sans-serif"
     }}>
       <div style={{
-        maxWidth: "1100px",
+        maxWidth: "1150px",
         margin: "auto",
-        background: "#020617",
         padding: "30px",
-        borderRadius: "20px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6)"
+        borderRadius: "24px",
+        backdropFilter: "blur(20px)",
+        background: "rgba(2,6,23,0.8)",
+        boxShadow: "0 25px 70px rgba(0,0,0,0.6)"
       }}>
 
         {/* HEADER */}
-        <h1 style={{ fontSize: "34px", marginBottom: "10px" }}>
-          🌍 Regional News Intelligence
-        </h1>
-        <p style={{ color: "#9ca3af", marginBottom: "20px" }}>
-          Analyze misinformation patterns across regions
-        </p>
+        <div style={{ marginBottom: "25px" }}>
+          <h1 style={{
+            fontSize: "38px",
+            background: "linear-gradient(90deg,#60a5fa,#c084fc)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            🌍 Regional Intelligence
+          </h1>
 
-        {/* DROPDOWNS */}
+          <p style={{ color: "#94a3b8" }}>
+            Analyze misinformation trends across regions with AI
+          </p>
+        </div>
+
+        {/* INPUT CARD */}
         <div style={{
-          display: "flex",
-          gap: "10px",
-          marginBottom: "15px"
+          background: "#020617",
+          padding: "20px",
+          borderRadius: "16px",
+          marginBottom: "20px"
         }}>
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "8px",
-              background: "#111827",
-              color: "#fff"
-            }}
-          >
-            <option value="india">India</option>
-          </select>
 
+          {/* DROPDOWN */}
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value)}
             style={{
               padding: "10px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               background: "#111827",
-              color: "#fff"
+              color: "#fff",
+              border: "1px solid #1f2937",
+              marginBottom: "10px"
             }}
           >
             <option>Andhra Pradesh</option>
@@ -107,107 +108,115 @@ export default function GeoPage() {
             <option>Karnataka</option>
             <option>Maharashtra</option>
           </select>
-        </div>
 
-        {/* INPUT */}
-        <textarea
-          value={claim}
-          onChange={(e) => setClaim(e.target.value)}
-          placeholder="Enter local claim..."
-          style={{
-            width: "100%",
-            height: "120px",
-            padding: "15px",
-            borderRadius: "12px",
-            background: "#111827",
-            color: "#fff",
-            border: "1px solid #1f2937",
-            marginBottom: "15px"
-          }}
-        />
-
-        {/* BUTTONS */}
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button
-            onClick={verifyGeo}
-            disabled={loading}
+          {/* TEXTAREA */}
+          <textarea
+            value={claim}
+            onChange={(e) => setClaim(e.target.value)}
+            placeholder="Enter local claim..."
             style={{
-              padding: "12px 20px",
-              borderRadius: "10px",
-              background: "linear-gradient(90deg,#7c3aed,#ec4899)",
-              border: "none",
+              width: "100%",
+              height: "110px",
+              padding: "14px",
+              borderRadius: "12px",
+              background: "#111827",
               color: "#fff",
-              cursor: "pointer"
+              border: "1px solid #1f2937"
             }}
-          >
-            {loading ? "Analyzing..." : "Verify Regional Claim"}
-          </button>
+          />
 
-          <button
-            onClick={() => (window.location.href = "/")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "10px",
-              background: "#374151",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer"
-            }}
-          >
-            ⬅ Back
-          </button>
+          {/* BUTTONS */}
+          <div style={{ marginTop: "12px", display: "flex", gap: "10px" }}>
+            <button
+              onClick={verifyGeo}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                border: "none",
+                background: "linear-gradient(90deg,#7c3aed,#ec4899)",
+                color: "#fff",
+                fontWeight: "600",
+                cursor: "pointer"
+              }}
+            >
+              {loading ? "Analyzing..." : "Verify Claim"}
+            </button>
+
+            <button
+              onClick={() => navigate("/")}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                background: "#1f2937",
+                color: "#fff",
+                border: "none"
+              }}
+            >
+              ⬅ Back
+            </button>
+          </div>
         </div>
 
         {/* HEATMAP */}
-        <div style={{ marginTop: "25px" }}>
+        <div style={{
+          background: "#020617",
+          padding: "20px",
+          borderRadius: "16px"
+        }}>
+          <h3 style={{ marginBottom: "10px" }}>📊 Misinformation Heatmap</h3>
+
+          {/* LEGEND */}
+          <div style={{
+            display: "flex",
+            gap: "20px",
+            marginBottom: "10px",
+            fontSize: "13px"
+          }}>
+            <span style={{ color: "yellow" }}>● 30–40%</span>
+            <span style={{ color: "orange" }}>● 60–70%</span>
+            <span style={{ color: "red" }}>● 80–90%</span>
+          </div>
+
           <MapView />
         </div>
 
         {/* RESULT */}
         {result && (
           <div style={{
-            marginTop: "25px",
-            background: "#111827",
-            padding: "25px",
+            marginTop: "20px",
+            background: "#020617",
+            padding: "20px",
             borderRadius: "16px"
           }}>
             <h2 style={{
-              fontSize: "40px",
+              fontSize: "36px",
               color: vc.color
             }}>
-              {vc.emoji} {vc.label}
+              {vc.emoji} {result.label}
             </h2>
 
-            <p style={{ color: "#9ca3af" }}>
+            <p style={{ color: "#94a3b8" }}>
               Confidence: {Math.round(result.confidence * 100)}%
             </p>
 
             <div style={{
-              marginTop: "15px",
-              padding: "15px",
-              background: "#020617",
-              borderRadius: "10px"
+              marginTop: "12px",
+              padding: "14px",
+              background: "#111827",
+              borderRadius: "12px"
             }}>
               {result.explanation}
             </div>
 
-            {/* REGIONAL SOURCES */}
-            {result.regional_view?.length > 0 && (
-              <div style={{ marginTop: "20px" }}>
-                <h3>Regional Sources</h3>
-
-                {result.regional_view.map((r, i) => (
-                  <div key={i} style={{
-                    background: "#020617",
-                    padding: "12px",
-                    borderRadius: "10px",
-                    marginTop: "10px"
-                  }}>
-                    <strong>{r.name}</strong> ({r.bias})
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* INSIGHT PANEL */}
+            <div style={{
+              marginTop: "15px",
+              padding: "14px",
+              background: "#1e293b",
+              borderRadius: "12px"
+            }}>
+              🧠 Insight: This claim shows patterns of misinformation common in regional narratives.
+            </div>
           </div>
         )}
 

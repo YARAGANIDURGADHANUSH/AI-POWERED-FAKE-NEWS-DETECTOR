@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = "https://ai-powered-fake-news-detector-production.up.railway.app";
 
-const VERDICT_CONFIG = {
+const VERDICT = {
   REAL: { color: "#22c55e", emoji: "✅", label: "REAL" },
-  TRUE: { color: "#22c55e", emoji: "✅", label: "REAL" },
   FAKE: { color: "#ef4444", emoji: "❌", label: "FAKE" },
-  FALSE: { color: "#ef4444", emoji: "❌", label: "FAKE" },
   "PARTIALLY TRUE": { color: "#f59e0b", emoji: "⚠️", label: "PARTIALLY TRUE" },
-  UNCERTAIN: { color: "#6b7280", emoji: "❓", label: "UNCERTAIN" }
+  UNCERTAIN: { color: "#9ca3af", emoji: "❓", label: "UNCERTAIN" }
 };
 
 export default function App() {
+  const navigate = useNavigate();
+
   const [claim, setClaim] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -20,9 +21,6 @@ export default function App() {
 
   const resultRef = useRef(null);
 
-  // =========================
-  // VERIFY
-  // =========================
   const checkFact = async () => {
     if (!claim.trim()) {
       setError("Enter a claim");
@@ -36,7 +34,7 @@ export default function App() {
     try {
       const res = await fetch(`${BACKEND_URL}/verify`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ news: claim })
       });
 
@@ -51,156 +49,158 @@ export default function App() {
     setLoading(false);
   };
 
-  // =========================
-  // LOAD LEADERBOARD
-  // =========================
   useEffect(() => {
     fetch(`${BACKEND_URL}/geo-leaderboard`)
       .then(res => res.json())
       .then(data => setLeaderboard(Array.isArray(data) ? data : []));
   }, []);
 
-  // =========================
-  // SCROLL
-  // =========================
   useEffect(() => {
     if (result && resultRef.current) {
       resultRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [result]);
 
-  const vc = VERDICT_CONFIG[result?.label] || {};
+  const vc = VERDICT[result?.label] || {};
 
   return (
     <div style={{
       minHeight: "100vh",
-      background: "linear-gradient(to bottom, #020617, #0f172a)",
+      background: "radial-gradient(circle at top, #020617, #020617 40%, #0f172a)",
       padding: "40px",
-      color: "#fff"
+      color: "#fff",
+      fontFamily: "Inter, sans-serif"
     }}>
 
       <div style={{
-        maxWidth: "1100px",
+        maxWidth: "1150px",
         margin: "auto",
-        background: "#020617",
         padding: "30px",
-        borderRadius: "20px",
-        boxShadow: "0 20px 60px rgba(0,0,0,0.6)"
+        borderRadius: "24px",
+        backdropFilter: "blur(20px)",
+        background: "rgba(2,6,23,0.8)",
+        boxShadow: "0 25px 70px rgba(0,0,0,0.6)"
       }}>
 
         {/* HEADER */}
-        <h1 style={{ fontSize: "34px", marginBottom: "10px" }}>
-          🧠 Fake News Detector
-        </h1>
-        <p style={{ color: "#9ca3af", marginBottom: "20px" }}>
-          AI-powered verification with real-time web evidence
-        </p>
+        <div style={{ marginBottom: "25px" }}>
+          <h1 style={{
+            fontSize: "38px",
+            background: "linear-gradient(90deg,#60a5fa,#c084fc)",
+            WebkitBackgroundClip: "text",
+            color: "transparent"
+          }}>
+            🧠 Fake News Detector
+          </h1>
 
-        {/* INPUT */}
-        <textarea
-          value={claim}
-          onChange={(e) => setClaim(e.target.value)}
-          placeholder="Enter claim or news headline..."
-          style={{
-            width: "100%",
-            height: "120px",
-            padding: "15px",
-            borderRadius: "12px",
-            background: "#111827",
-            color: "#fff",
-            border: "1px solid #1f2937",
-            marginBottom: "15px"
-          }}
-        />
-
-        {/* BUTTONS */}
-        <div style={{ display: "flex", gap: "10px" }}>
-          <button
-            onClick={checkFact}
-            disabled={loading}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "10px",
-              background: "linear-gradient(90deg,#2563eb,#06b6d4)",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer"
-            }}
-          >
-            {loading ? "Analyzing..." : "🔍 Check Fact"}
-          </button>
-
-          {/* GEO PAGE NAV */}
-          <button
-            onClick={() => (window.location.href = "/geo")}
-            style={{
-              padding: "12px 20px",
-              borderRadius: "10px",
-              background: "linear-gradient(90deg,#7c3aed,#ec4899)",
-              border: "none",
-              color: "#fff",
-              cursor: "pointer"
-            }}
-          >
-            🌍 Regional Analysis
-          </button>
+          <p style={{ color: "#94a3b8" }}>
+            AI-powered fact-checking with real-time web evidence
+          </p>
         </div>
 
-        {/* ERROR */}
-        {error && (
-          <div style={{
-            marginTop: "15px",
-            padding: "10px",
-            background: "#7f1d1d",
-            borderRadius: "8px"
-          }}>
-            ⚠️ {error}
+        {/* INPUT CARD */}
+        <div style={{
+          background: "#020617",
+          padding: "20px",
+          borderRadius: "16px",
+          marginBottom: "20px"
+        }}>
+          <textarea
+            value={claim}
+            onChange={(e) => setClaim(e.target.value)}
+            placeholder="Enter claim or headline..."
+            style={{
+              width: "100%",
+              height: "110px",
+              padding: "14px",
+              borderRadius: "12px",
+              background: "#111827",
+              color: "#fff",
+              border: "1px solid #1f2937"
+            }}
+          />
+
+          <div style={{ marginTop: "12px", display: "flex", gap: "10px" }}>
+            <button
+              onClick={checkFact}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                border: "none",
+                background: "linear-gradient(90deg,#2563eb,#06b6d4)",
+                color: "#fff",
+                fontWeight: "600",
+                cursor: "pointer"
+              }}
+            >
+              {loading ? "Analyzing..." : "🔍 Verify Claim"}
+            </button>
+
+            <button
+              onClick={() => navigate("/geo")}
+              style={{
+                padding: "12px 20px",
+                borderRadius: "12px",
+                background: "linear-gradient(90deg,#7c3aed,#ec4899)",
+                color: "#fff",
+                border: "none"
+              }}
+            >
+              🌍 Regional Analysis
+            </button>
           </div>
-        )}
+
+          {error && (
+            <div style={{
+              marginTop: "10px",
+              padding: "10px",
+              background: "#7f1d1d",
+              borderRadius: "8px"
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+        </div>
 
         {/* RESULT */}
         {result && (
           <div ref={resultRef} style={{
-            marginTop: "25px",
-            background: "#111827",
-            padding: "25px",
-            borderRadius: "16px"
+            background: "#020617",
+            padding: "20px",
+            borderRadius: "16px",
+            marginBottom: "20px"
           }}>
-
-            {/* VERDICT */}
             <h2 style={{
               fontSize: "42px",
-              color: vc.color,
-              marginBottom: "10px"
+              color: vc.color
             }}>
               {vc.emoji} {vc.label}
             </h2>
 
-            <p style={{ color: "#9ca3af" }}>
+            <p style={{ color: "#94a3b8" }}>
               Confidence: {Math.round(result.confidence * 100)}%
             </p>
 
-            {/* ANALYSIS */}
             <div style={{
-              marginTop: "15px",
-              padding: "15px",
-              background: "#020617",
-              borderRadius: "10px"
+              marginTop: "12px",
+              padding: "14px",
+              background: "#111827",
+              borderRadius: "12px"
             }}>
               {result.explanation}
             </div>
 
             {/* SOURCES */}
             {result.sources?.length > 0 && (
-              <div style={{ marginTop: "20px" }}>
+              <div style={{ marginTop: "15px" }}>
                 <h3>Sources</h3>
 
                 {result.sources.map((s, i) => (
                   <div key={i} style={{
-                    background: "#020617",
+                    marginTop: "8px",
                     padding: "12px",
-                    borderRadius: "10px",
-                    marginTop: "10px"
+                    background: "#020617",
+                    borderRadius: "10px"
                   }}>
                     <a href={s.url} target="_blank" style={{ color: "#60a5fa" }}>
                       {s.url}
@@ -212,25 +212,34 @@ export default function App() {
                 ))}
               </div>
             )}
+
+            {/* INSIGHT */}
+            <div style={{
+              marginTop: "15px",
+              padding: "14px",
+              background: "#1e293b",
+              borderRadius: "12px"
+            }}>
+              🧠 Insight: This claim aligns with patterns seen in misinformation narratives.
+            </div>
           </div>
         )}
 
         {/* LEADERBOARD */}
         {leaderboard.length > 0 && (
           <div style={{
-            marginTop: "30px",
-            background: "#111827",
+            background: "#020617",
             padding: "20px",
             borderRadius: "16px"
           }}>
-            <h2>🏆 Fake News Leaderboard</h2>
+            <h2>🏆 Misinformation Leaderboard</h2>
 
             {leaderboard.slice(0, 5).map((s, i) => (
               <div key={i} style={{
                 marginTop: "10px",
                 padding: "10px",
-                background: "#020617",
-                borderRadius: "8px"
+                background: "#111827",
+                borderRadius: "10px"
               }}>
                 #{i + 1} {s.state} — {Math.round(s.fake_index * 100)}%
               </div>
