@@ -1,225 +1,297 @@
-# AI-Powered Fake News Detector
+# 🔍 AI-Powered Fake News Detector
 
-A full-stack fake news detection app with an intelligent backend and a responsive React frontend.
-
-The system combines:
-- **Real-time web search** using Serper
-- **Semantic similarity matching** with SentenceTransformers
-- **Credibility scoring** for source evaluation
-- **Contradiction detection** from article text
-- **LLM reasoning** through Groq to produce label, confidence, and explanation
-- **Classic ML fallback** with a trained logistic regression model for quick `predict` support
+An intelligent fake news detection system that combines **LLM reasoning**, **RAG (Retrieval-Augmented Generation)**, **semantic similarity**, and **real-time web verification** to fact-check news claims with source credibility scoring.
 
 ---
 
-## 🚀 What this project does
+## 🚀 Features
 
-Users submit a news claim or headline, and the app evaluates it using a hybrid fact-checking pipeline:
-1. Search the web for related sources
-2. Extract text from top URLs
-3. Compare claim vs. document similarity
-4. Score each source by credibility
-5. Detect contradiction phrases
-6. Use an LLM to generate a final verdict
-
-If the LLM is unavailable, the backend falls back to a credibility-based heuristic.
+- ✅ **LLM-based verdict** — Uses `llama-3.3-70b-versatile` via Groq to analyze claims
+- 🌐 **Real-time web search** — Fetches live sources via Serper (Google Search API)
+- 📊 **Credibility scoring** — Automatically scores any domain (no manual entry needed)
+- 🔗 **Semantic similarity** — Uses `sentence-transformers` to match claim vs source content
+- ⚠️ **Contradiction detection** — Flags sources that contradict the claim
+- 🎨 **React frontend** — Clean, responsive UI with color-coded verdicts
 
 ---
 
-## 🧱 Repository structure
+## 🏗️ Project Structure
 
 ```
-AI-POWERED-FAKE-NEWS-DETECTOR/
+fake-news-detector/
+│
 ├── backend/
-│   ├── main.py
-│   ├── predictor.py
-│   ├── hybrid_predictor.py
-│   ├── rag_engine.py
-│   ├── web_verifier.py
-│   ├── similarity_engine.py
-│   ├── credibility_engine.py
-│   ├── contradiction_engine.py
-│   ├── requirements.txt
+│   ├── main.py                  # FastAPI app & API routes
+│   ├── predictor.py             # ML model-based predictor (pickle)
+│   ├── hybrid_predictor.py      # Connects to RAG pipeline
+│   ├── rag_engine.py            # Core pipeline (search → extract → score → LLM)
+│   ├── web_verifier.py          # Serper Google Search integration
+│   ├── similarity_engine.py     # Sentence-transformer similarity scoring
+│   ├── credibility_engine.py    # Smart domain credibility scoring
+│   ├── contradiction_engine.py  # Contradiction phrase detection
 │   └── model/
-│       ├── model.pkl
-│       ├── vectorizer.pkl
-│       ├── prepare_data.py
-│       └── train.py
+│       ├── model.pkl            # Trained ML model
+│       └── vectorizer.pkl       # TF-IDF vectorizer
+│
 ├── frontend/
-│   ├── package.json
-│   ├── README.md
 │   └── src/
-│       └── App.jsx
+│       └── App.jsx              # React frontend
+│
+├── .env                         # API keys (never commit this)
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🔧 Tech stack
+## ⚙️ How It Works
 
-- Backend: `FastAPI`, `uvicorn`, `python-dotenv`
-- Frontend: `React`, `Vite`
-- Search: `Serper` API
-- LLM: `Groq` (`llama-3.3-70b-versatile`)
-- Similarity: `sentence-transformers` (`all-MiniLM-L6-v2`)
-- ML model: `scikit-learn` logistic regression
-- Web scraping: `requests`, `BeautifulSoup4`
+```
+User enters claim
+       │
+       ▼
+🌐 Web Search (Serper API)
+       │
+       ▼
+📄 Extract content from top 5 URLs
+       │
+       ▼
+🧮 Semantic Similarity (sentence-transformers)
+       │
+       ▼
+📊 Credibility Scoring (domain trust + similarity)
+       │
+       ▼
+⚠️  Contradiction Detection
+       │
+       ▼
+🧠 LLM Judge (Groq llama-3.3-70b)
+       │
+       ▼
+✅ Final Verdict: REAL / FAKE / PARTIALLY TRUE / UNCERTAIN
+```
 
 ---
 
-## ⚙️ Getting started
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React + Vite |
+| Backend | FastAPI (Python) |
+| LLM | Groq API (`llama-3.3-70b-versatile`) |
+| Web Search | Serper API (Google Search) |
+| Similarity | `sentence-transformers` (`all-MiniLM-L6-v2`) |
+| ML Model | Scikit-learn (pickle) |
+| Scraping | BeautifulSoup4 |
+| Env Management | python-dotenv |
+
+---
+
+## 📦 Installation
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YARAGANIDURGADHANUSH/AI-POWERED-FAKE-NEWS-DETECTOR.git
-cd AI-POWERED-FAKE-NEWS-DETECTOR
+git clone https://github.com/yourusername/fake-news-detector.git
+cd fake-news-detector
 ```
 
-### 2. Create and activate a Python environment
+### 2. Set up Python environment
 
 ```bash
 python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
 source venv/bin/activate
 ```
 
-### 3. Install backend dependencies
+### 3. Install Python dependencies
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r requirements.txt
 ```
-
-> If you want to install the shared dependency list, you can also run:
->
-> ```bash
-> pip install -r requirements.txt
-> ```
 
 ### 4. Install frontend dependencies
 
 ```bash
 cd frontend
 npm install
-cd ..
 ```
 
 ---
 
-## 🔐 Environment variables
+## 🔑 Environment Variables
 
-Create a `.env` file in the project root with:
+Create a `.env` file in the `backend/` directory:
 
 ```env
 GROQ_API_KEY=your_groq_api_key_here
 SERPER_API_KEY=your_serper_api_key_here
 ```
 
-- `GROQ_API_KEY` is required for LLM verdict generation.
-- `SERPER_API_KEY` is required for web source retrieval.
-
-If either key is missing, the backend will continue running in fallback mode, but some features will be limited.
+| Variable | Where to get it |
+|---|---|
+| `GROQ_API_KEY` | [console.groq.com](https://console.groq.com) — Free tier available |
+| `SERPER_API_KEY` | [serper.dev](https://serper.dev) — 2500 free searches/month |
 
 ---
 
-## ▶️ Running the app
+## ▶️ Running the Project
 
 ### Start the backend
 
 ```bash
+# From project root
 uvicorn backend.main:app --reload
 ```
 
-The API will be available at `http://127.0.0.1:8000`.
+Backend runs at: `http://127.0.0.1:8000`
 
 ### Start the frontend
 
 ```bash
+# In a new terminal
 cd frontend
 npm run dev
 ```
 
-The React app will usually be available at `http://localhost:5173`.
+Frontend runs at: `http://localhost:5173`
 
 ---
 
-## 🧪 API endpoints
+## 🔌 API Endpoints
 
 ### `GET /`
-
-Health check:
-
+Health check
 ```json
 { "message": "Fake News Detector API is running" }
 ```
 
 ### `POST /verify`
-
-Runs the RAG + LLM pipeline and returns a fact-check verdict.
+Main fact-checking endpoint (RAG + LLM pipeline)
 
 **Request:**
-
 ```json
-{ "news": "Example news claim to verify" }
+{ "news": "NASA confirms aliens landed in Texas" }
 ```
 
 **Response:**
-
 ```json
 {
   "label": "FAKE",
-  "confidence": 0.85,
-  "explanation": "Multiple credible sources contradict this claim.",
-  "differences": [
-    "https://example.com → contains: no evidence"
-  ],
+  "confidence": 0.92,
+  "explanation": "No credible sources support this claim...",
+  "differences": ["bbc.com → reports no evidence"],
   "sources": [
     {
-      "url": "https://example.com",
-      "domain": "example.com",
-      "similarity": 0.82,
-      "credibility": 91.2
+      "url": "https://bbc.com/...",
+      "domain": "bbc.com",
+      "similarity": 0.812,
+      "credibility": 83.4
     }
   ]
 }
 ```
 
 ### `POST /predict`
-
-Uses the saved ML model to classify text as `Fake` or `Real`.
+ML model-only prediction (faster, no web search)
 
 **Request:**
-
 ```json
-{ "news": "Example news claim" }
+{ "news": "Some news headline here" }
 ```
 
 **Response:**
-
 ```json
 {
-  "prediction": "Fake",
-  "confidence": 0.73
+  "prediction": "Real",
+  "confidence": 0.87
 }
 ```
 
 ---
 
-## 📌 Notes
+## 📊 Verdict Labels
 
-- The `backend/model/train.py` script can retrain the classic ML model if you provide `data/fake_news.csv`.
-- `backend/rag_engine.py` handles the full pipeline: search, extract, similarity, credibility, contradiction detection, and LLM judging.
-- `frontend/README.md` contains frontend-specific instructions and any UI details.
+| Label | Meaning | Color |
+|---|---|---|
+| ✅ REAL | Claim is supported by credible sources | Green |
+| ❌ FAKE | Claim is false or fabricated | Red |
+| ⚠️ PARTIALLY TRUE | Some truth but misleading or incomplete | Orange |
+| ❓ UNCERTAIN | Insufficient evidence to decide | Grey |
 
 ---
 
-## 💡 Improvements to consider
+## 🧠 Credibility Scoring
 
-- Add a dedicated dataset folder and version control for the training data
-- Add a user interface for inspection of evidence sources and contradictions
-- Improve model persistence with Docker or deployment scripts
+Domain credibility is scored automatically using a 3-layer system:
+
+1. **Manual trusted list** — Known reliable sources (BBC, Reuters, Indian Express, etc.) get preset scores
+2. **TLD-based scoring** — `.gov.in` → 0.95, `.edu` → 0.85, `.org` → 0.72
+3. **Keyword signals** — Domains with "express", "herald", "tribune" get boosted; "viral", "buzz", "exposed" get penalized
+
+Final credibility formula:
+```
+credibility = (domain_score × 0.6) + (semantic_similarity × 0.4)
+```
+
+---
+
+## 📋 Requirements
+
+Create a `requirements.txt` with:
+
+```
+fastapi
+uvicorn
+pydantic
+python-dotenv
+requests
+beautifulsoup4
+groq
+sentence-transformers
+scikit-learn
+numpy
+```
+
+---
+
+## 🐛 Common Issues
+
+| Issue | Fix |
+|---|---|
+| `GROQ_API_KEY missing` | Add key to `.env` file |
+| `SERPER_API_KEY not found` | Add key to `.env` file |
+| Credibility shows wrong % | Restart backend after editing `credibility_engine.py` |
+| `Backend connection failed` | Make sure `uvicorn` is running on port 8000 |
+| CORS error in browser | Already handled in `main.py` with `allow_origins=["*"]` |
+
+---
+
+## 🔮 Future Improvements
+
+- [ ] Add support for image-based fake news detection
+- [ ] Multilingual support (Hindi, Telugu, Tamil)
+- [ ] Browser extension for real-time checking
+- [ ] History of checked claims
+- [ ] User feedback to improve model accuracy
+- [ ] WhatsApp/Telegram bot integration
 
 ---
 
 ## 📄 License
- MIT
+
+MIT License — feel free to use, modify, and distribute.
+
+---
+
+## 🙏 Acknowledgements
+
+- [Groq](https://groq.com) — Ultra-fast LLM inference
+- [Serper](https://serper.dev) — Google Search API
+- [Sentence Transformers](https://www.sbert.net) — Semantic similarity
+- [FastAPI](https://fastapi.tiangolo.com) — Backend framework
