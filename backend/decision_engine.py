@@ -9,7 +9,70 @@ HIGH_AUTHORITY = [
 ]
 
 
-def boost_authority(source):
+def boost_authority(source):import math
+
+
+def compute_scores(sources):
+    support = 0
+    refute = 0
+
+    for s in sources:
+        cred = s["credibility"] / 100
+
+        if s["stance"] == "support":
+            support += cred
+
+        elif s["stance"] == "refute":
+            refute += cred
+
+    return support, refute
+
+
+def compute_confidence(support, refute, sources):
+    total = support + refute
+
+    if total == 0:
+        return 0.5
+
+    diff = abs(support - refute)
+
+    base = 0.55 + (diff / (total + 1e-6)) * 0.3
+
+    avg_cred = sum(s["credibility"] for s in sources) / len(sources)
+
+    cred_factor = avg_cred / 100
+    source_factor = min(0.1, len(sources) * 0.02)
+
+    confidence = base * cred_factor + source_factor
+
+    # penalize weak sources
+    if avg_cred < 50:
+        confidence *= 0.7
+
+    return round(min(confidence, 0.88), 2)
+
+
+def decide_label(support, refute):
+    if support == 0 and refute == 0:
+        return "UNCERTAIN"
+
+    if support > 0 and refute > 0:
+        ratio = support / (refute + 1e-6)
+
+        if ratio > 1.5:
+            return "MOSTLY TRUE"
+        elif ratio < 0.66:
+            return "MOSTLY FALSE"
+        else:
+            return "PARTIALLY TRUE"
+
+    if refute > 0:
+        return "FAKE"
+
+    if support > 0:
+        return "REAL"
+
+    return "UNCERTAIN"
     domain = source.get("domain", "")
 
     if any(h in domain for h in HIGH_AUTHORITY):
