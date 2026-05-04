@@ -1,36 +1,31 @@
 import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
-import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
+import geoData from "./assets/india_states_small.json";
+import { useState } from "react";
 
-const getColor = (v) => {
-  if (v > 0.75) return "#ff0000";
-  if (v > 0.5) return "#ff8800";
-  if (v > 0.3) return "#ffd700";
-  return "#00ff88";
+const getColor = (intensity) => {
+  return intensity > 0.75 ? "#ff0000" :
+         intensity > 0.5 ? "#ff8800" :
+         intensity > 0.25 ? "#ffd700" :
+         "#00ff88";
 };
 
-const MapView = ({ onRegionSelect }) => {
-  const [geoData, setGeoData] = useState(null);
-  const [heatData, setHeatData] = useState({});
+export default function MapView({ onRegionSelect }) {
+  const [selectedState, setSelectedState] = useState(null);
 
-  // Load map
-  useEffect(() => {
-    fetch("/india_states.json")
-      .then(res => res.json())
-      .then(data => setGeoData(data));
-  }, []);
+  // 🔥 Fake heatmap values (replace later with real backend)
+  const fakeHeatData = {
+    "Andhra Pradesh": 0.7,
+    "Telangana": 0.4,
+    "Tamil Nadu": 0.8,
+    "Karnataka": 0.3,
+    "Maharashtra": 0.6
+  };
 
-  // Load real heatmap data from backend
-  useEffect(() => {
-    fetch("https://ai-powered-fake-news-detector-production.up.railway.app/geo-heatmap")
-      .then(res => res.json())
-      .then(data => setHeatData(data));
-  }, []);
+  const onEachFeature = (feature, layer) => {
+    const state = feature.properties.NAME_1;
 
-  const onEachState = (feature, layer) => {
-    const state = feature.properties.NAME_1; // ✅ FIXED
-
-    const intensity = heatData[state] || 0.1;
+    const intensity = fakeHeatData[state] || 0.2;
 
     layer.setStyle({
       fillColor: getColor(intensity),
@@ -41,7 +36,7 @@ const MapView = ({ onRegionSelect }) => {
 
     layer.on({
       click: () => {
-        console.log("Clicked:", state);
+        setSelectedState(state);
         onRegionSelect(state);
       },
       mouseover: (e) => {
@@ -58,21 +53,17 @@ const MapView = ({ onRegionSelect }) => {
       }
     });
 
-    layer.bindTooltip(`${state} (${Math.round(intensity * 100)}%)`);
+    layer.bindPopup(`<b>${state}</b><br>Fake News Index: ${Math.round(intensity*100)}%`);
   };
-
-  if (!geoData) return <p>Loading map...</p>;
 
   return (
     <MapContainer
-      center={[22.9734, 78.6569]}
+      center={[20.5, 78.9]}
       zoom={5}
-      style={{ height: "400px", borderRadius: "12px" }}
+      style={{ height: "400px", width: "100%" }}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <GeoJSON data={geoData} onEachFeature={onEachState} />
+      <GeoJSON data={geoData} onEachFeature={onEachFeature} />
     </MapContainer>
   );
-};
-
-export default MapView;
+}
