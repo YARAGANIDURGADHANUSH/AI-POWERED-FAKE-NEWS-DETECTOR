@@ -1,161 +1,73 @@
 from web_verifier import verify_with_web
-from similarity_engine import compute_similarity
-from credibility_engine import score_sources
-from contradiction_engine import analyze_content_llm
-from decision_engine import compute_scores, compute_confidence, decide_label
+from analysis_engine import compute_similarity, analyze_content_llm
+from scoring_engine import score_sources, compute_scores, compute_confidence, decide_label
+from claim_classifier import classify_claim
 
 import requests
 from bs4 import BeautifulSoup
 
 
-# ----------------------------
-# Extract text from URL
-# ----------------------------
 def extract_text(url):
     try:
         res = requests.get(url, timeout=10)
         soup = BeautifulSoup(res.text, "html.parser")
-        paragraphs = soup.find_all("p")
-        text = " ".join([p.get_text() for p in paragraphs[:10]])
-        return text[:1500]
+        return " ".join([p.get_text() for p in soup.find_all("p")[:10]])
     except:
         return ""
 
 
-# ----------------------------
-# Claim classifier
-# ----------------------------
-def classify_claim(text):
-    text = text.lower()
-
-    if any(x in text for x in ["banana", "sky is person", "made of whatsapp"]):
-        return "nonsense"
-
-    if any(x in text for x in ["bad", "good", "better", "worst", "great"]):
-        return "opinion"
-
-    if any(x in text for x in ["election", "government", "breaking", "policy"]):
-        return "news"
-
-    return "general"
-
-
-# ----------------------------
-# Balance sources
-# ----------------------------
-def balance_sources(sources):
-    support = []
-    refute = []
-
-    for s in sources:
-        if s["stance"] == "support":
-            support.append(s)
-        elif s["stance"] == "refute":
-            refute.append(s)
-
-    return support[:2] + refute[:2]
-
-
-# ----------------------------
-# MAIN PIPELINE
-# ----------------------------
 def rag_pipeline(claim):
-    try:
-        claim_type = classify_claim(claim)
+    print("🔥 PIPELINE RUNNING")
 
-        # 🚨 Nonsense handling
-        if claim_type == "nonsense":
-            return {
-                "label": "FAKE",
-                "confidence": 0.85,
-                "explanation": "This claim is logically impossible.",
-                "sources": []
-            }
+    claim_type = classify_claim(claim)
+    print("TYPE:", claim_type)
 
-        # ⚠️ Opinion handling
-        if claim_type == "opinion":
-            return {
-                "label": "OPINION",
-                "confidence": 0.6,
-                "explanation": "This claim is subjective and depends on perspective.",
-                "sources": []
-            }
+    # 🚨 ROUTING
+    if claim_type == "NONSENSE":
+        return {"label": "FAKE", "confidence": 0.85, "explanation": "Logically impossible", "sources": []}
 
-        web_result = verify_with_web(claim)
-        urls = web_result.get("sources", [])
+    if claim_type == "OPINION":
+        return {"label": "OPINION", "confidence": 0.6, "explanation": "Subjective claim", "sources": []}
 
-        if not urls:
-            return {
-                "label": "UNCERTAIN",
-                "confidence": 0.5,
-                "explanation": "No sources found",
-                "sources": []
-            }
+    # 🌐 Web
+    web = verify_with_web(claim)
+    urls = web["sources"][:5]
 
-        documents = []
-        enriched_sources = []
+    documents = []
+    enriched = []
 
-        for url in urls[:5]:
-            text = extract_text(url)
-            if text:
-                documents.append(text)
-                enriched_sources.append({
-                    "url": url,
-                    "text": text
-                })
+    for url in urls:
+        text = extract_text(url)
+        if text:
+            documents.append(text)
+            enriched.append({"url": url, "text": text})
 
-        if not documents:
-            return {
-                "label": "UNCERTAIN",
-                "confidence": 0.5,
-                "explanation": "No content extracted",
-                "sources": []
-            }
+    if not documents:
+        return {"label": "UNCERTAIN", "confidence": 0.5, "explanation": "No data", "sources": []}
 
-        sim_scores = compute_similarity(claim, documents)
+    sim_scores = compute_similarity(claim, documents)
+    scored = score_sources([s["url"] for s in enriched], sim_scores)
 
-        scored_sources = score_sources(
-            [s["url"] for s in enriched_sources],
-            sim_scores
-        )
+    analyzed = []
 
-        analyzed_sources = []
+    for i, s in enumerate(scored):
+        relation = analyze_content_llm(claim, enriched[i]["text"], s["url"])["relation"]
 
-        for i, s in enumerate(scored_sources):
-            text = enriched_sources[i]["text"]
+        stance = "neutral"
+        if relation == "support":
+            stance = "support"
+        elif relation == "contradict":
+            stance = "refute"
 
-            analysis = analyze_content_llm(claim, text, s["url"])
+        analyzed.append({**s, "stance": stance})
 
-            stance = "neutral"
-            if analysis["relation"] == "support":
-                stance = "support"
-            elif analysis["relation"] == "contradict":
-                stance = "refute"
+    support, refute = compute_scores(analyzed)
+    label = decide_label(support, refute)
+    confidence = compute_confidence(support, refute, analyzed)
 
-            analyzed_sources.append({
-                **s,
-                "stance": stance,
-                "text": text
-            })
-
-        # ⚖️ balance
-        final_sources = balance_sources(analyzed_sources)
-
-        support, refute = compute_scores(final_sources)
-        label = decide_label(support, refute)
-        confidence = compute_confidence(support, refute, final_sources)
-
-        return {
-            "label": label,
-            "confidence": confidence,
-            "explanation": f"Based on {len(final_sources)} sources with mixed evidence.",
-            "sources": final_sources
-        }
-
-    except Exception as e:
-        return {
-            "label": "UNCERTAIN",
-            "confidence": 0.5,
-            "explanation": f"Pipeline failed: {str(e)}",
-            "sources": []
-        }
+    return {
+        "label": label,
+        "confidence": confidence,
+        "explanation": f"Based on {len(analyzed)} sources",
+        "sources": analyzed[:3]
+    }
