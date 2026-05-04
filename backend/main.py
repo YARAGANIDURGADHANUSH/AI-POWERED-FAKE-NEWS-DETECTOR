@@ -44,3 +44,21 @@ def predict(request: NewsRequest):
         "message": "Deprecated endpoint. Use /verify instead.",
         "status": "deprecated"
     }
+
+class GeoRequest(BaseModel):
+    news: str
+    country: str
+    region: str
+
+
+@app.post("/geo-verify")
+def geo_verify(request: GeoRequest):
+    try:
+        from rag_engine import rag_pipeline_geo
+        return rag_pipeline_geo(
+            request.news,
+            request.country,
+            request.region
+        )
+    except Exception as e:
+        return {"error": str(e)}
