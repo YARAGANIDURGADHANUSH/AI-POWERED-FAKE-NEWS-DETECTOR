@@ -17,6 +17,9 @@ def extract_text(url):
         return ""
 
 
+# ----------------------------
+# GLOBAL PIPELINE
+# ----------------------------
 def rag_pipeline(claim):
     print("🔥 PIPELINE RUNNING")
 
@@ -25,12 +28,22 @@ def rag_pipeline(claim):
 
     # 🚨 ROUTING
     if claim_type == "NONSENSE":
-        return {"label": "FAKE", "confidence": 0.85, "explanation": "Logically impossible", "sources": []}
+        return {
+            "label": "FAKE",
+            "confidence": 0.85,
+            "explanation": "Logically impossible",
+            "sources": []
+        }
 
     if claim_type == "OPINION":
-        return {"label": "OPINION", "confidence": 0.6, "explanation": "Subjective claim", "sources": []}
+        return {
+            "label": "OPINION",
+            "confidence": 0.6,
+            "explanation": "Subjective claim",
+            "sources": []
+        }
 
-    # 🌐 Web
+    # 🌐 Web search
     web = verify_with_web(claim)
     urls = web["sources"][:5]
 
@@ -44,7 +57,12 @@ def rag_pipeline(claim):
             enriched.append({"url": url, "text": text})
 
     if not documents:
-        return {"label": "UNCERTAIN", "confidence": 0.5, "explanation": "No data", "sources": []}
+        return {
+            "label": "UNCERTAIN",
+            "confidence": 0.5,
+            "explanation": "No data",
+            "sources": []
+        }
 
     sim_scores = compute_similarity(claim, documents)
     scored = score_sources([s["url"] for s in enriched], sim_scores)
@@ -52,7 +70,11 @@ def rag_pipeline(claim):
     analyzed = []
 
     for i, s in enumerate(scored):
-        relation = analyze_content_llm(claim, enriched[i]["text"], s["url"])["relation"]
+        relation = analyze_content_llm(
+            claim,
+            enriched[i]["text"],
+            s["url"]
+        )["relation"]
 
         stance = "neutral"
         if relation == "support":
@@ -72,9 +94,34 @@ def rag_pipeline(claim):
         "explanation": f"Based on {len(analyzed)} sources",
         "sources": analyzed[:3]
     }
-    
+
+
+# ----------------------------
+# GEO PIPELINE (FIXED)
+# ----------------------------
 def rag_pipeline_geo(claim, country, region):
     print("🌍 GEO PIPELINE")
+
+    claim_type = classify_claim(claim)
+
+    # 🚨 SAME ROUTING (IMPORTANT)
+    if claim_type == "NONSENSE":
+        return {
+            "label": "FAKE",
+            "confidence": 0.85,
+            "explanation": "Logically impossible",
+            "regional_view": [],
+            "sources": []
+        }
+
+    if claim_type == "OPINION":
+        return {
+            "label": "OPINION",
+            "confidence": 0.6,
+            "explanation": "This is a subjective claim. Regional perspectives may differ.",
+            "regional_view": [],
+            "sources": []
+        }
 
     geo_data = verify_geo_news(claim, country, region)
 
@@ -116,20 +163,34 @@ def rag_pipeline_geo(claim, country, region):
         elif relation == "contradict":
             stance = "refute"
 
-        analyzed.append({**s, "stance": stance})
+        # 🔥 ADD BIAS DETECTION
+        domain = s["domain"]
+        bias = "unknown"
 
-    # Attach regional bias
-    regional_view = []
+        for geo in geo_sources:
+            if geo["domain"] in domain:
+                bias = geo["bias"]
 
-    for src in geo_sources:
-        regional_view.append({
-            "name": src["name"],
-            "bias": src["bias"]
+        analyzed.append({
+            **s,
+            "stance": stance,
+            "bias": bias
         })
 
+    # 🧠 DECISION
     support, refute = compute_scores(analyzed)
     label = decide_label(support, refute)
     confidence = compute_confidence(support, refute, analyzed)
+
+    # 📍 Regional display
+    regional_view = [
+        {
+            "name": src["name"],
+            "bias": src["bias"],
+            "note": "Represents regional narrative, not verified truth"
+        }
+        for src in geo_sources
+    ]
 
     return {
         "label": label,
