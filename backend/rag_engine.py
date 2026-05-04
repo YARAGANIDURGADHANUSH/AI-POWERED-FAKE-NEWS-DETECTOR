@@ -1,6 +1,7 @@
 from web_verifier import verify_with_web
 from analysis_engine import compute_similarity, analyze_content_llm
 from scoring_engine import score_sources, compute_scores, compute_confidence, decide_label
+from geo_news_engine import verify_geo_news
 from claim_classifier import classify_claim
 
 import requests
