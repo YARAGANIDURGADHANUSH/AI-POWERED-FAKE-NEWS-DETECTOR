@@ -2,19 +2,15 @@ from web_verifier import verify_with_web
 from similarity_engine import compute_similarity
 from credibility_engine import score_sources
 from contradiction_engine import analyze_content_llm
+from decision_engine import (
+    compute_scores,
+    compute_confidence,
+    decide_label,
+    generate_explanation
+)
 
 import requests
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-
-# 🔥 High authority domains
-HIGH_AUTHORITY = [
-    "who.int", "cdc.gov", "nih.gov",
-    "mayoclinic.org", "nhs.uk"
-]
 
 
 def extract_text(url):
@@ -28,92 +24,18 @@ def extract_text(url):
         return ""
 
 
-def classify_input(claim):
-    claim_lower = claim.lower()
-
-    nonsense_patterns = ["banana", "sky is a person", "made of whatsapp"]
-
-    if any(p in claim_lower for p in nonsense_patterns):
-        return "nonsense"
-
-    return "factual"
-
-
-def boost_authority(domain):
-    if any(h in domain for h in HIGH_AUTHORITY):
-        return 1.15
-    return 1.0
-
-
-def compute_final_decision(sources_analysis):
-    support_score = 0
-    refute_score = 0
-
-    support_sources = []
-    refute_sources = []
-
-    for s in sources_analysis:
-        cred = s["credibility"] / 100
-        boost = boost_authority(s["domain"])
-        weight = cred * boost
-
-        if s["stance"] == "support":
-            support_score += weight
-            support_sources.append(s)
-
-        elif s["stance"] == "refute":
-            refute_score += weight
-            refute_sources.append(s)
-
-    total = support_score + refute_score
-
-    if total == 0:
-        return "UNCERTAIN", 0.5, support_sources, refute_sources
-
-    diff = abs(support_score - refute_score)
-
-    # 🔥 Improved confidence
-    confidence = 0.55 + (diff / (total + 1e-6)) * 0.35
-
-    # small bonus for more sources
-    confidence += min(0.05, len(sources_analysis) * 0.01)
-
-    confidence = round(min(confidence, 0.92), 2)
-
-    if refute_score > support_score * 1.2:
-        label = "FAKE"
-    elif support_score > refute_score * 1.2:
-        label = "REAL"
-    else:
-        label = "PARTIALLY TRUE"
-
-    return label, confidence, support_sources, refute_sources
-
-
 def rag_pipeline(claim):
     try:
-        # 🔥 Step 1: classify input
-        claim_type = classify_input(claim)
-
-        if claim_type == "nonsense":
-            return {
-                "label": "FAKE",
-                "confidence": 0.9,
-                "explanation": "Claim is logically invalid or nonsensical.",
-                "evidence": {},
-                "sources": []
-            }
-
         web_result = verify_with_web(claim)
         urls = web_result.get("sources", [])
 
         if not urls:
             return {
                 "label": "UNCERTAIN",
-                "confidence": 0.5,
+                "confidence": 0.4,
                 "explanation": "No sources found.",
-                "evidence": {},
-                "sources": []
+                "sources": [],
+                "differences": []
             }
 
         documents = []
@@ -121,7 +43,6 @@ def rag_pipeline(claim):
 
         for url in urls[:5]:
             text = extract_text(url)
-
             if text:
                 documents.append(text)
                 enriched_sources.append({
@@ -132,10 +53,10 @@ def rag_pipeline(claim):
         if not documents:
             return {
                 "label": "UNCERTAIN",
-                "confidence": 0.5,
+                "confidence": 0.4,
                 "explanation": "No usable content extracted.",
-                "evidence": {},
-                "sources": []
+                "sources": [],
+                "differences": []
             }
 
         sim_scores = compute_similarity(claim, documents)
@@ -145,7 +66,7 @@ def rag_pipeline(claim):
             sim_scores
         )
 
-        # 🔥 FIXED: correct mapping (no index mismatch)
+        # map url → text
         url_to_text = {
             s["url"]: s["text"] for s in enriched_sources
         }
@@ -169,26 +90,32 @@ def rag_pipeline(claim):
                 "text": text
             })
 
-        label, confidence, support_sources, refute_sources = compute_final_decision(analyzed_sources)
+        # 🔥 NEW DECISION ENGINE
+        support, refute, support_sources, refute_sources = compute_scores(analyzed_sources)
 
-        # 🔥 Better explanation
-        if label == "FAKE":
-            explanation = "Multiple credible sources refute this claim."
-        elif label == "REAL":
-            explanation = "Multiple credible sources support this claim."
-        else:
-            explanation = "Mixed evidence found across sources."
+        label = decide_label(support, refute)
+
+        confidence = compute_confidence(
+            support,
+            refute,
+            len(analyzed_sources)
+        )
+
+        explanation = generate_explanation(
+            label,
+            support_sources,
+            refute_sources
+        )
 
         return {
             "label": label,
             "confidence": confidence,
             "explanation": explanation,
 
-            "evidence": {
-                "supporting": [s["url"] for s in support_sources[:2]],
-                "refuting": [s["url"] for s in refute_sources[:2]],
-                "total_sources": len(analyzed_sources)
-            },
+            "differences": [
+                f"{s['url']} → {s['stance']}"
+                for s in analyzed_sources if s["stance"] == "refute"
+            ],
 
             "sources": analyzed_sources[:3]
         }
@@ -196,8 +123,8 @@ def rag_pipeline(claim):
     except Exception as e:
         return {
             "label": "UNCERTAIN",
-            "confidence": 0.5,
-            "explanation": f"Pipeline failed: {str(e)}",
-            "evidence": {},
-            "sources": []
+            "confidence": 0.4,
+            "explanation": f"Pipeline error: {str(e)}",
+            "sources": [],
+            "differences": []
         }
