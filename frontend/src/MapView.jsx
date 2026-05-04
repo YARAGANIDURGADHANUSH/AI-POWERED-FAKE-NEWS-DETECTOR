@@ -2,25 +2,63 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
 
+const getColor = (v) => {
+  if (v > 0.75) return "#ff0000";
+  if (v > 0.5) return "#ff8800";
+  if (v > 0.3) return "#ffd700";
+  return "#00ff88";
+};
+
 const MapView = ({ onRegionSelect }) => {
   const [geoData, setGeoData] = useState(null);
+  const [heatData, setHeatData] = useState({});
 
+  // Load map
   useEffect(() => {
     fetch("/india_states.json")
       .then(res => res.json())
       .then(data => setGeoData(data));
   }, []);
 
+  // Load real heatmap data from backend
+  useEffect(() => {
+    fetch("https://ai-powered-fake-news-detector-production.up.railway.app/geo-heatmap")
+      .then(res => res.json())
+      .then(data => setHeatData(data));
+  }, []);
+
   const onEachState = (feature, layer) => {
+    const state = feature.properties.NAME_1; // ✅ FIXED
+
+    const intensity = heatData[state] || 0.1;
+
+    layer.setStyle({
+      fillColor: getColor(intensity),
+      fillOpacity: 0.6,
+      color: "white",
+      weight: 1
+    });
+
     layer.on({
       click: () => {
-        const state = feature.properties.ST_NM;
         console.log("Clicked:", state);
         onRegionSelect(state);
+      },
+      mouseover: (e) => {
+        e.target.setStyle({
+          weight: 3,
+          color: "#00ffff"
+        });
+      },
+      mouseout: (e) => {
+        e.target.setStyle({
+          weight: 1,
+          color: "white"
+        });
       }
     });
 
-    layer.bindTooltip(feature.properties.ST_NM);
+    layer.bindTooltip(`${state} (${Math.round(intensity * 100)}%)`);
   };
 
   if (!geoData) return <p>Loading map...</p>;
