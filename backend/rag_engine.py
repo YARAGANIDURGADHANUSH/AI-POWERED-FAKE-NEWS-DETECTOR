@@ -72,3 +72,69 @@ def rag_pipeline(claim):
         "explanation": f"Based on {len(analyzed)} sources",
         "sources": analyzed[:3]
     }
+    
+def rag_pipeline_geo(claim, country, region):
+    print("🌍 GEO PIPELINE")
+
+    geo_data = verify_geo_news(claim, country, region)
+
+    urls = geo_data["sources"][:5]
+    geo_sources = geo_data["geo_sources"]
+
+    documents = []
+    enriched = []
+
+    for url in urls:
+        text = extract_text(url)
+        if text:
+            documents.append(text)
+            enriched.append({"url": url, "text": text})
+
+    if not documents:
+        return {
+            "label": "UNCERTAIN",
+            "confidence": 0.5,
+            "explanation": "No regional data",
+            "regional_view": []
+        }
+
+    sim_scores = compute_similarity(claim, documents)
+    scored = score_sources([s["url"] for s in enriched], sim_scores)
+
+    analyzed = []
+
+    for i, s in enumerate(scored):
+        relation = analyze_content_llm(
+            claim,
+            enriched[i]["text"],
+            s["url"]
+        )["relation"]
+
+        stance = "neutral"
+        if relation == "support":
+            stance = "support"
+        elif relation == "contradict":
+            stance = "refute"
+
+        analyzed.append({**s, "stance": stance})
+
+    # Attach regional bias
+    regional_view = []
+
+    for src in geo_sources:
+        regional_view.append({
+            "name": src["name"],
+            "bias": src["bias"]
+        })
+
+    support, refute = compute_scores(analyzed)
+    label = decide_label(support, refute)
+    confidence = compute_confidence(support, refute, analyzed)
+
+    return {
+        "label": label,
+        "confidence": confidence,
+        "explanation": f"Regional analysis for {region}",
+        "regional_view": regional_view,
+        "sources": analyzed[:3]
+    }
