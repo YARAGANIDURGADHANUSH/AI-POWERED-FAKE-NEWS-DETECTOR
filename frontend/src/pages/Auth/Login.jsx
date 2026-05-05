@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import toast from "react-hot-toast";
 
 const loginSchema = z.object({
@@ -20,10 +20,10 @@ export default function Login() {
 
   const onSubmit = async (data) => {
     try {
-      // TODO: Replace with actual backend authentication API call
-      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API delay
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800)); 
       
-      // Update global context
+      // Update global context using your existing AuthContext
       login({ name: data.email.split('@')[0], email: data.email });
       
       toast.success("Welcome back!");
