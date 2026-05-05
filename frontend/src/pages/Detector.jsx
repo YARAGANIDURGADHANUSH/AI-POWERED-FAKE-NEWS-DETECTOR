@@ -47,6 +47,7 @@ export default function Detector() {
       {/* Button */}
       <button 
         className="btn btn-primary btn-full" 
+        style={{ marginTop: "15px" }}
         onClick={handleCheck}
         disabled={loading}
       >
@@ -69,36 +70,3 @@ export default function Detector() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    maxWidth: "700px",
-    margin: "40px auto",
-    textAlign: "center",
-  },
-  title: {
-    marginBottom: "20px",
-  },
-  textarea: {
-    width: "100%",
-    height: "120px",
-    padding: "10px",
-    borderRadius: "8px",
-    border: "1px solid #1f2937",
-    background: "#020617",
-    color: "white",
-  },
-  button: {
-    marginTop: "15px",
-    padding: "10px 20px",
-    borderRadius: "8px",
-    border: "none",
-    background: "#0ea5e9",
-    color: "white",
-    cursor: "pointer",
-  },
-  error: {
-    color: "#ef4444",
-    marginTop: "10px",
-  },
-};
