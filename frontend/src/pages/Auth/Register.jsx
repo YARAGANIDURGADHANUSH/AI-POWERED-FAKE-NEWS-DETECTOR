@@ -4,7 +4,6 @@ import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-// 1. Define the Validation Schema using Zod
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters long"),
   email: z.string().email("Please enter a valid email address"),
@@ -14,16 +13,14 @@ const registerSchema = z.object({
 export default function Register() {
   const navigate = useNavigate();
   
-  // 2. Initialize React Hook Form
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(registerSchema),
   });
 
-  // 3. Handle Form Submission
   const onSubmit = async (data) => {
     try {
-      // TODO: Replace with actual backend API call
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); 
       
       console.log("Registration Payload:", data);
       toast.success("Account created successfully!");
