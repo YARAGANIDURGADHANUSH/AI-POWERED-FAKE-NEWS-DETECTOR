@@ -1,91 +1,102 @@
-import React from "react";
+const VERDICT_CONFIG = {
+  REAL:            { cls: "real",     emoji: "✅", label: "REAL" },
+  TRUE:            { cls: "real",     emoji: "✅", label: "REAL" },
+  FAKE:            { cls: "fake",     emoji: "❌", label: "FAKE" },
+  FALSE:           { cls: "fake",     emoji: "❌", label: "FAKE" },
+  "PARTIALLY TRUE":{ cls: "partial",  emoji: "⚠️", label: "PARTIALLY TRUE" },
+  MISLEADING:      { cls: "partial",  emoji: "⚠️", label: "MISLEADING" },
+  UNCERTAIN:       { cls: "uncertain",emoji: "❓", label: "UNCERTAIN" },
+  UNVERIFIABLE:    { cls: "uncertain",emoji: "❓", label: "UNCERTAIN" },
+};
+
+function SourceBadge({ type }) {
+  const map = {
+    fact_check:   { cls: "badge-fact_check",   icon: "🧾", label: "Fact-check" },
+    trusted_news: { cls: "badge-trusted_news",  icon: "📰", label: "Trusted News" },
+    gov_edu:      { cls: "badge-gov_edu",        icon: "🏛️", label: "Gov / Edu" },
+    unknown:      { cls: "badge-unknown",         icon: "🔗", label: "Source" },
+  };
+  const c = map[type] || map.unknown;
+  return <span className={`source-badge ${c.cls}`}>{c.icon} {c.label}</span>;
+}
 
 export default function ResultCard({ result }) {
   if (!result) return null;
 
-  const getColor = () => {
-    if (result.label === "REAL") return "#22c55e";
-    if (result.label === "FAKE") return "#ef4444";
-    return "#facc15";
-  };
+  const key = result.label?.toUpperCase();
+  const vc  = VERDICT_CONFIG[key] || VERDICT_CONFIG[result.label] || VERDICT_CONFIG.UNCERTAIN;
+  const confPct = Math.round((result.confidence || 0.5) * 100);
 
   return (
-    <div style={styles.card}>
-      {/* Label */}
-      <div style={{ ...styles.label, color: getColor() }}>
-        {result.label}
+    <div className="result-card">
+
+      {/* Verdict */}
+      <div className={`verdict-banner ${vc.cls}`}>
+        <span className="verdict-emoji">{vc.emoji}</span>
+        <div className="verdict-label">{vc.label}</div>
       </div>
 
       {/* Confidence */}
-      <div style={styles.section}>
-        <p>Confidence</p>
-        <div style={styles.barContainer}>
-          <div
-            style={{
-              ...styles.bar,
-              width: `${Math.round(result.confidence * 100)}%`,
-              background: getColor(),
-            }}
-          ></div>
+      <div className={`confidence-section ${vc.cls}`}>
+        <div className="confidence-row">
+          <span className="label-mono">Confidence</span>
+          <span className="confidence-value">{confPct}%</span>
         </div>
-        <span>{Math.round(result.confidence * 100)}%</span>
+        <div className="bar-track">
+          <div className="bar-fill" style={{ width: `${confPct}%` }} />
+        </div>
       </div>
 
-      {/* Explanation */}
-      <div style={styles.section}>
-        <h4>Analysis</h4>
-        <p>{result.explanation}</p>
-      </div>
+      {/* Analysis */}
+      {result.explanation && (
+        <div className="analysis-section">
+          <div className="section-title">Analysis</div>
+          <p className="analysis-text">{result.explanation}</p>
+        </div>
+      )}
 
-      {/* Sources */}
-      {result.sources && result.sources.length > 0 && (
-        <div style={styles.section}>
-          <h4>Sources</h4>
-          {result.sources.map((src, i) => (
-            <div key={i} style={styles.source}>
-              <a href={src.url} target="_blank" rel="noreferrer">
-                {src.url}
-              </a>
-              <span>{Math.round(src.score * 100)}% credibility</span>
+      {/* Contradictions */}
+      {result.differences?.length > 0 && (
+        <div className="contradictions-section">
+          <div className="section-title">⚠️ Contradictions Detected</div>
+          {result.differences.map((d, i) => (
+            <div key={i} className="contradiction-item">
+              <span>•</span><span>{d}</span>
             </div>
           ))}
         </div>
       )}
+
+      {/* Sources — fixed: uses credibility not score */}
+      {result.sources?.length > 0 && (
+        <div className="sources-section">
+          <div className="section-title">Sources</div>
+          {result.sources.map((s, i) => {
+            const cred = Math.round(s.credibility ?? (s.score ? s.score * 100 : 50));
+            return (
+              <div key={i} className="source-item">
+                <div className="source-meta">
+                  <SourceBadge type={s.source_type} />
+                  <span className="source-cred">{cred}% credibility</span>
+                </div>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="source-url">
+                  {s.url}
+                </a>
+                <div className="mini-bar-track">
+                  <div className="mini-bar-fill" style={{ width: `${cred}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <div className="disclaimer">
+        <span>⚠️</span>
+        <span>AI-assisted system. Results may not be fully accurate. Always verify with trusted sources before sharing.</span>
+      </div>
+
     </div>
   );
 }
-
-const styles = {
-  card: {
-    marginTop: "30px",
-    padding: "20px",
-    borderRadius: "12px",
-    background: "#0f172a",
-    border: "1px solid #1f2937",
-  },
-  label: {
-    fontSize: "28px",
-    fontWeight: "bold",
-    marginBottom: "15px",
-  },
-  section: {
-    marginTop: "15px",
-  },
-  barContainer: {
-    width: "100%",
-    height: "8px",
-    background: "#1f2937",
-    borderRadius: "5px",
-    marginTop: "5px",
-  },
-  bar: {
-    height: "100%",
-    borderRadius: "5px",
-  },
-  source: {
-    marginTop: "10px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-};

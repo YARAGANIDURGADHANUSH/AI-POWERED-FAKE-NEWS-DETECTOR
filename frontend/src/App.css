@@ -85,7 +85,9 @@ button {
 
 .cred {
   font-size: 12px;
-} {
+}
+.source-link {
+
     outline: 2px solid var(--accent);
     outline-offset: 2px;
   }

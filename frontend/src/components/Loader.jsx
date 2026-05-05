@@ -1,39 +1,28 @@
-import React from "react";
+const STEPS = [
+  "Searching web sources...",
+  "Extracting content...",
+  "Computing similarity...",
+  "Analyzing with LLM...",
+  "Building verdict...",
+];
 
-export default function Loader() {
+export default function Loader({ stepIndex = 0 }) {
   return (
-    <div style={styles.container}>
-      <div style={styles.spinner}></div>
-      <p style={styles.text}>Analyzing claim...</p>
+    <div className="loader-wrap anim-fade-in">
+      <div className="loader-ring" />
+      <div className="loader-steps">
+        {STEPS.map((step, i) => (
+          <div
+            key={i}
+            className={`loader-step ${
+              i < stepIndex ? "done" : i === stepIndex ? "active" : ""
+            }`}
+          >
+            <div className="step-dot" />
+            {i < stepIndex ? `✓ ${step}` : step}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    marginTop: "30px",
-  },
-  spinner: {
-    width: "40px",
-    height: "40px",
-    border: "4px solid rgba(255,255,255,0.1)",
-    borderTop: "4px solid #00e0ff",
-    borderRadius: "50%",
-    animation: "spin 1s linear infinite",
-  },
-  text: {
-    marginTop: "10px",
-    color: "#9ca3af",
-  },
-};
-
-// 🔥 Add this in global CSS
-/*
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-*/
