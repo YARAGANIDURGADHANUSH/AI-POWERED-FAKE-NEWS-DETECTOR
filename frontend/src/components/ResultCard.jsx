@@ -1,102 +1,70 @@
-const VERDICT_CONFIG = {
-  REAL:            { cls: "real",     emoji: "✅", label: "REAL" },
-  TRUE:            { cls: "real",     emoji: "✅", label: "REAL" },
-  FAKE:            { cls: "fake",     emoji: "❌", label: "FAKE" },
-  FALSE:           { cls: "fake",     emoji: "❌", label: "FAKE" },
-  "PARTIALLY TRUE":{ cls: "partial",  emoji: "⚠️", label: "PARTIALLY TRUE" },
-  MISLEADING:      { cls: "partial",  emoji: "⚠️", label: "MISLEADING" },
-  UNCERTAIN:       { cls: "uncertain",emoji: "❓", label: "UNCERTAIN" },
-  UNVERIFIABLE:    { cls: "uncertain",emoji: "❓", label: "UNCERTAIN" },
+const VERDICT_STYLE = {
+  TRUE:             { color: "#4caf50", emoji: "✅", label: "TRUE" },
+  REAL:             { color: "#4caf50", emoji: "✅", label: "REAL" },
+  FALSE:            { color: "#f44336", emoji: "❌", label: "FALSE" },
+  FAKE:             { color: "#f44336", emoji: "❌", label: "FAKE" },
+  "PARTIALLY TRUE": { color: "#ff9800", emoji: "⚠️", label: "PARTIALLY TRUE" },
+  MISLEADING:       { color: "#ff9800", emoji: "⚠️", label: "MISLEADING" },
+  UNCERTAIN:        { color: "#9e9e9e", emoji: "❓", label: "UNCERTAIN" },
+  UNVERIFIABLE:     { color: "#9e9e9e", emoji: "❓", label: "UNVERIFIABLE" },
 };
-
-function SourceBadge({ type }) {
-  const map = {
-    fact_check:   { cls: "badge-fact_check",   icon: "🧾", label: "Fact-check" },
-    trusted_news: { cls: "badge-trusted_news",  icon: "📰", label: "Trusted News" },
-    gov_edu:      { cls: "badge-gov_edu",        icon: "🏛️", label: "Gov / Edu" },
-    unknown:      { cls: "badge-unknown",         icon: "🔗", label: "Source" },
-  };
-  const c = map[type] || map.unknown;
-  return <span className={`source-badge ${c.cls}`}>{c.icon} {c.label}</span>;
-}
 
 export default function ResultCard({ result }) {
   if (!result) return null;
 
-  const key = result.label?.toUpperCase();
-  const vc  = VERDICT_CONFIG[key] || VERDICT_CONFIG[result.label] || VERDICT_CONFIG.UNCERTAIN;
-  const confPct = Math.round((result.confidence || 0.5) * 100);
+  // Determine the styling based on the verdict label
+  const verdictKey = result.label?.toUpperCase() || result.verdict?.toUpperCase();
+  const style = VERDICT_STYLE[verdictKey] || { color: "#fff", emoji: "🔍", label: result.label || "UNKNOWN" };
+  
+  // Format Confidence
+  const confidenceStr = result.confidence 
+    ? `${Math.round(result.confidence * 100)}%` 
+    : "N/A";
+
+  // Safely extract differences/contradictions
+  const differences = result.differences || result.contradictions || [];
 
   return (
-    <div className="result-card">
+    <div className="result-box">
+      
+      {/* Verdict Header */}
+      <h2 className="verdict-header" style={{ color: style.color }}>
+        {style.emoji} {style.label}
+      </h2>
+      
+      <div className="confidence">Confidence: {confidenceStr}</div>
+      <div className="explanation">{result.explanation || "No explanation available"}</div>
 
-      {/* Verdict */}
-      <div className={`verdict-banner ${vc.cls}`}>
-        <span className="verdict-emoji">{vc.emoji}</span>
-        <div className="verdict-label">{vc.label}</div>
-      </div>
-
-      {/* Confidence */}
-      <div className={`confidence-section ${vc.cls}`}>
-        <div className="confidence-row">
-          <span className="label-mono">Confidence</span>
-          <span className="confidence-value">{confPct}%</span>
-        </div>
-        <div className="bar-track">
-          <div className="bar-fill" style={{ width: `${confPct}%` }} />
-        </div>
-      </div>
-
-      {/* Analysis */}
-      {result.explanation && (
-        <div className="analysis-section">
-          <div className="section-title">Analysis</div>
-          <p className="analysis-text">{result.explanation}</p>
-        </div>
-      )}
-
-      {/* Contradictions */}
-      {result.differences?.length > 0 && (
-        <div className="contradictions-section">
-          <div className="section-title">⚠️ Contradictions Detected</div>
-          {result.differences.map((d, i) => (
-            <div key={i} className="contradiction-item">
-              <span>•</span><span>{d}</span>
-            </div>
+      {/* Contradictions / Differences */}
+      {differences.length > 0 && (
+        <div className="differences">
+          <div className="differences-title">⚠️ Contradictions Found</div>
+          {differences.map((diff, index) => (
+            <div key={index} className="diff-item">• {diff}</div>
           ))}
         </div>
       )}
 
-      {/* Sources — fixed: uses credibility not score */}
+      {/* Sources Map */}
       {result.sources?.length > 0 && (
-        <div className="sources-section">
-          <div className="section-title">Sources</div>
-          {result.sources.map((s, i) => {
-            const cred = Math.round(s.credibility ?? (s.score ? s.score * 100 : 50));
+        <div className="sources">
+          <div className="sources-title">Sources</div>
+          {result.sources.map((source, index) => {
+            const cred = source.credibility ?? (source.score ? source.score * 100 : null);
+            const credStr = cred ? `${Math.round(cred)}%` : "N/A";
+            
             return (
-              <div key={i} className="source-item">
-                <div className="source-meta">
-                  <SourceBadge type={s.source_type} />
-                  <span className="source-cred">{cred}% credibility</span>
-                </div>
-                <a href={s.url} target="_blank" rel="noopener noreferrer" className="source-url">
-                  {s.url}
+              <div key={index} className="source-card">
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
+                  {source.title || source.url}
                 </a>
-                <div className="mini-bar-track">
-                  <div className="mini-bar-fill" style={{ width: `${cred}%` }} />
-                </div>
+                <div className="cred">🛡️ Credibility: {credStr}</div>
               </div>
             );
           })}
         </div>
       )}
-
-      {/* Disclaimer */}
-      <div className="disclaimer">
-        <span>⚠️</span>
-        <span>AI-assisted system. Results may not be fully accurate. Always verify with trusted sources before sharing.</span>
-      </div>
-
+      
     </div>
   );
 }
