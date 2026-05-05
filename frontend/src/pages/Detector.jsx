@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { verifyNews } from "../services/newsService";
-import Loader from "../components/Loader";
 import ResultCard from "../components/ResultCard";
 import toast from "react-hot-toast";
 
@@ -19,6 +18,7 @@ export default function Detector() {
       setLoading(true);
       setResult(null);
 
+      // Uses your centralized service to call the backend
       const data = await verifyNews(claim);
       setResult(data);
       toast.success("Analysis complete!");
@@ -31,41 +31,28 @@ export default function Detector() {
 
   return (
     <div className="content-wrapper">
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>🧠 Fake News Detector</h2>
+      <h1 className="section-title">🔍 AI Fact Checker</h1>
 
-      {/* Input */}
       <div className="input-group">
-        <label className="input-label">Claim / News Headline</label>
         <textarea
           className="textarea"
-          placeholder="Enter claim or news headline..."
+          placeholder="Enter a news headline or claim to fact-check…"
           value={claim}
           onChange={(e) => setClaim(e.target.value)}
         />
       </div>
 
-      {/* Button */}
       <button 
-        className="btn btn-primary btn-full" 
-        style={{ marginTop: "15px" }}
+        className="btn btn-primary" 
         onClick={handleCheck}
-        disabled={loading}
+        disabled={loading || !claim.trim()}
       >
-        {loading ? "Analyzing..." : "🔍 Check Fact"}
+        {loading ? "Checking…" : "Check Fact"}
       </button>
 
-      {/* Loader */}
-      {loading && (
-        <div style={{ marginTop: "30px" }}>
-          <Loader />
-        </div>
-      )}
-
-      {/* Result */}
+      {/* Result Card is rendered here when data comes back */}
       {result && !loading && (
-        <div style={{ marginTop: "30px" }}>
-          <ResultCard result={result} />
-        </div>
+        <ResultCard result={result} />
       )}
     </div>
   );
