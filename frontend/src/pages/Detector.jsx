@@ -2,58 +2,70 @@ import { useState } from "react";
 import { verifyNews } from "../services/newsService";
 import Loader from "../components/Loader";
 import ResultCard from "../components/ResultCard";
+import toast from "react-hot-toast";
 
 export default function Detector() {
   const [claim, setClaim] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleCheck = async () => {
     if (!claim.trim()) {
-      setError("Please enter a claim");
+      toast.error("Please enter a claim to verify.");
       return;
     }
 
     try {
       setLoading(true);
-      setError("");
       setResult(null);
 
       const data = await verifyNews(claim);
       setResult(data);
+      toast.success("Analysis complete!");
     } catch (err) {
-      setError("Something went wrong. Try again.");
+      toast.error(err.message || "Analysis failed. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>Fake News Detector</h2>
+    <div className="content-wrapper">
+      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>🧠 Fake News Detector</h2>
 
       {/* Input */}
-      <textarea
-        style={styles.textarea}
-        placeholder="Enter claim or news headline..."
-        value={claim}
-        onChange={(e) => setClaim(e.target.value)}
-      />
+      <div className="input-group">
+        <label className="input-label">Claim / News Headline</label>
+        <textarea
+          className="textarea"
+          placeholder="Enter claim or news headline..."
+          value={claim}
+          onChange={(e) => setClaim(e.target.value)}
+        />
+      </div>
 
       {/* Button */}
-      <button style={styles.button} onClick={handleCheck}>
-        🔍 Check Fact
+      <button 
+        className="btn btn-primary btn-full" 
+        onClick={handleCheck}
+        disabled={loading}
+      >
+        {loading ? "Analyzing..." : "🔍 Check Fact"}
       </button>
 
-      {/* Error */}
-      {error && <p style={styles.error}>{error}</p>}
-
       {/* Loader */}
-      {loading && <Loader />}
+      {loading && (
+        <div style={{ marginTop: "30px" }}>
+          <Loader />
+        </div>
+      )}
 
       {/* Result */}
-      {result && !loading && <ResultCard result={result} />}
+      {result && !loading && (
+        <div style={{ marginTop: "30px" }}>
+          <ResultCard result={result} />
+        </div>
+      )}
     </div>
   );
 }
