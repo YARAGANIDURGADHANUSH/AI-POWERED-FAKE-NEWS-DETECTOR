@@ -8,12 +8,11 @@ export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        {/* Global Toast Configuration */}
         <Toaster 
           position="top-right" 
           toastOptions={{
             style: {
-              background: '#0a1220', // Matches your dark theme glassmorphism
+              background: '#0a1220',
               color: '#e8f0ff',
               border: '1px solid rgba(255,255,255,0.1)',
               fontFamily: 'var(--font-body)',
