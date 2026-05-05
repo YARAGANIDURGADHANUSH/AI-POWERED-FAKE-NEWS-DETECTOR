@@ -3,7 +3,6 @@ import { createContext, useState, useContext } from "react";
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // Initialize user from localStorage so they stay logged in across refreshes
   const [user, setUser] = useState(() => {
     try {
       const stored = localStorage.getItem("fn_user");
@@ -32,7 +31,6 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook to make importing the context easier in other files
 export function useAuth() {
   return useContext(AuthContext);
 }
