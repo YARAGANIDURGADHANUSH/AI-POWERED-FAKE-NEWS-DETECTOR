@@ -1,11 +1,28 @@
+import os
 from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from datetime import datetime
 
-# Creates a local SQLite database file named "fakenews.db"
-SQLALCHEMY_DATABASE_URL = "sqlite:///./fakenews.db"
+# 1. Grab the database URL from the environment (Railway will inject this)
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+# 2. Quick Fix: SQLAlchemy 1.4+ requires 'postgresql://', but Railway might output 'postgres://'
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# 3. Conditionally create the engine based on the environment
+if not SQLALCHEMY_DATABASE_URL:
+    # --- LOCAL ENVIRONMENT ---
+    print("Running locally: Using SQLite database.")
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./fakenews.db"
+    # SQLite requires the check_same_thread argument
+    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # --- RAILWAY ENVIRONMENT ---
+    print("Running in production: Using PostgreSQL database.")
+    # PostgreSQL does NOT use the check_same_thread argument
+    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
