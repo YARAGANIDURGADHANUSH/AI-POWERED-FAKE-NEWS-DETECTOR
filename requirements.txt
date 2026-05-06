@@ -3,8 +3,15 @@ uvicorn
 scikit-learn
 pandas
 numpy
-sentence-transformers
 beautifulsoup4
 requests
 groq
 python-dotenv
+sentence-transformers
+sqlalchemy
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0+cpu
+psycopg2-binary
