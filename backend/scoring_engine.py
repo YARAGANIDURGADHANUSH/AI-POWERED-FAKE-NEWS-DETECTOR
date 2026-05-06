@@ -1,81 +1,51 @@
-from urllib.parse import urlparse
 from source_config import TRUSTED_SOURCES, LOW_TRUST_SOURCES
 
+def calculate_score(analysis_results, search_results, mode="global"):
+    """
+    Calculates the final confidence score and label.
+    mode: "global" or "regional"
+    """
+    base_confidence = analysis_results.get("confidence", 0)
+    
+    # Calculate credibility multiplier based on sources
+    credibility_multiplier = 1.0
+    trusted_count = 0
+    low_trust_count = 0
 
-def get_domain(url):
-    return urlparse(url).netloc.replace("www.", "")
+    for source in search_results:
+        url = source.get("url", "").lower()
+        if any(domain in url for domain in TRUSTED_SOURCES):
+            trusted_count += 1
+        if any(domain in url for domain in LOW_TRUST_SOURCES):
+            low_trust_count += 1
 
+    if mode == "global":
+        # Global rules: heavy penalty for low trust, bonus for high trust
+        if trusted_count > 0:
+            credibility_multiplier += 0.2 * trusted_count
+        if low_trust_count > 0:
+            credibility_multiplier -= 0.3 * low_trust_count
+    elif mode == "regional":
+        # Regional rules: Local papers are rarely in TRUSTED_SOURCES. 
+        # We assume neutral credibility unless explicitly in LOW_TRUST_SOURCES.
+        if low_trust_count > 0:
+            credibility_multiplier -= 0.3 * low_trust_count
 
-def bias_penalty(bias):
-    if bias in ["left", "right"]:
-        return 0.9
-    return 1.0
+    # Apply limits
+    credibility_multiplier = max(0.5, min(credibility_multiplier, 1.5))
+    
+    # Final Math
+    final_confidence = min(100, int(base_confidence * credibility_multiplier))
+    
+    # Determine Label
+    if final_confidence >= 75:
+        label = "REAL"
+    elif final_confidence <= 40:
+        label = "FAKE"
+    else:
+        label = "UNVERIFIED"
 
-
-def score_sources(urls, sim_scores):
-    sources = []
-
-    for i, url in enumerate(urls):
-        base = int(sim_scores[i] * 100)
-        domain = get_domain(url)
-
-        if any(t in domain for t in TRUSTED_SOURCES):
-            base += 25
-        elif any(l in domain for l in LOW_TRUST_SOURCES):
-            base -= 25
-
-        base = max(20, min(base, 95))
-
-        sources.append({
-            "url": url,
-            "credibility": base,
-            "domain": domain
-        })
-
-    return sources
-
-
-def compute_scores(sources):
-    support = 0
-    refute = 0
-
-    for s in sources:
-        cred = s["credibility"] / 100
-        bias_factor = bias_penalty(s.get("bias", "unknown"))
-
-        weight = cred * bias_factor
-
-        if s["stance"] == "support":
-            support += weight
-        elif s["stance"] == "refute":
-            refute += weight
-
-    return support, refute
-
-
-def compute_confidence(support, refute, sources):
-    total = support + refute
-
-    if total == 0:
-        return 0.5
-
-    diff = abs(support - refute)
-    base = 0.55 + (diff / total) * 0.3
-
-    avg_cred = sum(s["credibility"] for s in sources) / len(sources)
-    confidence = base * (avg_cred / 100)
-
-    return round(min(confidence, 0.85), 2)
-
-
-def decide_label(support, refute):
-    if support == 0 and refute == 0:
-        return "UNCERTAIN"
-
-    if support > 0 and refute > 0:
-        return "PARTIALLY TRUE"
-
-    if refute > 0:
-        return "FAKE"
-
-    return "REAL"
+    return {
+        "label": label,
+        "confidence": final_confidence
+    }
