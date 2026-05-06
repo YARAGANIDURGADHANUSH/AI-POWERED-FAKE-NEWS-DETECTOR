@@ -1,87 +1,54 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const FEATURES = [
-  { icon: "🧠", title: "LLM Reasoning",      desc: "Powered by Llama 3.3 70B via Groq for deep contextual fact analysis." },
-  { icon: "🌐", title: "Real-time Search",    desc: "Searches the live web for sources using Google Search API." },
-  { icon: "📊", title: "Credibility Scoring", desc: "Custom engine scores every source by domain trust and relevance." },
-  { icon: "🌍", title: "Geo Analysis",        desc: "Region-aware fact checking across Indian states." },
-  { icon: "⚠️", title: "Contradiction Detect",desc: "Context-aware AI detects when sources conflict with the claim." },
-  { icon: "🔓", title: "Free & Open Source",  desc: "No paywalls. Try any claim instantly, no login required." },
-];
-
 export default function Home() {
-  const navigate   = useNavigate();
+  const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
 
+  const QUICK_ACTIONS = [
+    { title: "Fact Detector", desc: "Verify any news headline using AI reasoning.", path: "/detector", icon: "🧠" },
+    { title: "Geo Analysis", desc: "Check regional misinformation across India.", path: "/geo", icon: "🌍" },
+    { title: "Saved Claims", desc: "Access your history of verified news.", path: "/bookmarks", icon: "⭐" },
+    { title: "User Profile", desc: "Manage your account and preferences.", path: "/profile", icon: "👤" },
+  ];
+
   return (
-    <div className="content-wrapper-wide">
+    <div className="content-wrapper" style={{ width: '900px', textAlign: 'center' }}>
+      <h1 className="section-title">🛡️ FakeNews AI Launchpad</h1>
+      <p style={{ color: 'var(--text-muted)', marginBottom: '30px' }}>
+        Combat misinformation with region-aware AI fact-checking.
+      </p>
 
-      {/* Hero */}
-      <div className="hero anim-fade-up">
-        <div className="hero-badge">AI-Powered · Real-time · LLM Reasoning</div>
-        <h1>Fight Misinformation<br />with AI</h1>
-        <p>
-          Verify any news claim using live web sources, semantic similarity,
-          and large language model fact-checking — in seconds.
-        </p>
-        <div className="hero-actions">
-          <button className="btn btn-primary btn-lg" onClick={() => navigate("/detector")}>
-            🔍 Try Detector
-          </button>
-          {isLoggedIn ? (
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate("/profile")}>
-              👤 {user?.name}
-            </button>
-          ) : (
-            <button className="btn btn-secondary btn-lg" onClick={() => navigate("/register")}>
-              Create Account
-            </button>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="stats-row anim-fade-up delay-2">
-          <div className="stat-cell">
-            <div className="stat-val">Llama 3.3</div>
-            <div className="stat-lbl">LLM Engine</div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-val">Real-time</div>
-            <div className="stat-lbl">Web Search</div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-val">4</div>
-            <div className="stat-lbl">Verdict Types</div>
-          </div>
-          <div className="stat-cell">
-            <div className="stat-val">Free</div>
-            <div className="stat-lbl">Always</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Features */}
-      <div className="features-grid anim-fade-up delay-3">
-        {FEATURES.map((f, i) => (
-          <div key={i} className="feature-card">
-            <div className="feature-icon">{f.icon}</div>
-            <div className="feature-title">{f.title}</div>
-            <div className="feature-desc">{f.desc}</div>
+      {/* Quick Action Grid */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+        gap: '20px',
+        marginTop: '20px'
+      }}>
+        {QUICK_ACTIONS.map((action) => (
+          <div 
+            key={action.path} 
+            className="source-card" 
+            style={{ cursor: 'pointer', padding: '25px' }}
+            onClick={() => navigate(action.path)}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>{action.icon}</div>
+            <h3 style={{ marginBottom: '10px', color: 'var(--accent-cyan)' }}>{action.title}</h3>
+            <p style={{ fontSize: '13px', color: '#bbb' }}>{action.desc}</p>
           </div>
         ))}
       </div>
 
-      {/* CTA */}
-      <div style={{ textAlign: "center", marginTop: 64 }} className="anim-fade-up delay-3">
-        <p style={{ color: "var(--text-2)", marginBottom: 16, fontSize: 15 }}>
-          Ready to check a claim?
-        </p>
-        <button className="btn btn-primary btn-lg" onClick={() => navigate("/detector")}>
-          🧠 Start Fact Checking
-        </button>
+      <div style={{ marginTop: '40px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px' }}>
+        {!isLoggedIn ? (
+          <button className="btn btn-primary" onClick={() => navigate("/register")}>
+            Get Started — Create Free Account
+          </button>
+        ) : (
+          <p style={{ color: 'var(--success)' }}>Welcome back, {user?.name}!</p>
+        )}
       </div>
-
     </div>
   );
 }
