@@ -1,32 +1,21 @@
-import { useState } from "react";
-import { geoVerify } from "../services/newsService";
-import Loader from "../components/Loader";
-import ResultCard from "../components/ResultCard";
-import MapView from "../components/MapView";
+import React, { useState } from 'react';
+import { newsService } from '../services/api';
+import MapView from '../components/MapView';
+import ResultCard from '../components/ResultCard';
 
 export default function Geo() {
-  const [claim, setClaim] = useState("");
-  const [region, setRegion] = useState("Andhra Pradesh");
+  const [claim, setClaim] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState('Andhra Pradesh'); // Default
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const handleCheck = async (selectedRegion = region) => {
-    if (!claim.trim()) {
-      setError("Please enter a claim to verify.");
-      return;
-    }
-
+  const handleGeoVerify = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError("");
-      setResult(null);
-
-      // Uses the centralized newsService
-      const data = await geoVerify(claim, selectedRegion);
-      setResult(data);
-    } catch (err) {
-      setError(err.message || "Failed to analyze regional news. Try again.");
+      const response = await newsService.verifyRegional(claim, selectedRegion);
+      setResult(response.data);
+    } catch (error) {
+      console.error("Regional verification failed", error);
     } finally {
       setLoading(false);
     }
@@ -34,55 +23,24 @@ export default function Geo() {
 
   return (
     <div className="content-wrapper">
-      <h2 style={{ textAlign: "center", marginBottom: "20px" }}>🌍 Geo News Analysis</h2>
-
-      <div className="input-group">
-        <label className="input-label">Select Region</label>
-        <select className="select" value={region} onChange={(e) => setRegion(e.target.value)}>
-          <option value="Andhra Pradesh">Andhra Pradesh</option>
-          <option value="Telangana">Telangana</option>
-          <option value="Maharashtra">Maharashtra</option>
-          <option value="Karnataka">Karnataka</option>
-          <option value="Tamil Nadu">Tamil Nadu</option>
-          <option value="Delhi">Delhi</option>
-        </select>
-      </div>
-
-      <div className="input-group">
-        <label className="input-label">Claim / News Headline</label>
-        <textarea
-          className="textarea"
-          placeholder="Enter a region-specific claim..."
+      <h2 className="section-title">🌍 Geo Analysis</h2>
+      
+      {/* Map selection tool */}
+      <MapView onRegionSelect={setSelectedRegion} />
+      
+      <div className="search-container">
+        <p>Analyzing for: <strong>{selectedRegion}</strong></p>
+        <textarea 
+          placeholder={`Enter news specific to ${selectedRegion}...`}
           value={claim}
           onChange={(e) => setClaim(e.target.value)}
         />
+        <button onClick={handleGeoVerify} disabled={loading}>
+          Verify Local News
+        </button>
       </div>
 
-      <button className="btn btn-primary btn-full" onClick={() => handleCheck(region)} disabled={loading}>
-        {loading ? "Analyzing..." : "🌍 Check Regional Fact"}
-      </button>
-
-      {error && <div className="error-box" style={{ marginTop: "20px" }}>{error}</div>}
-
-      {loading && <Loader />}
-
-      {result && !loading && (
-        <div style={{ marginTop: "30px" }}>
-          <ResultCard result={result} />
-        </div>
-      )}
-
-      {/* Map Integration */}
-      <div style={{ marginTop: "40px" }}>
-        <h3 className="section-title">Interactive Region Map</h3>
-        <p style={{ fontSize: "13px", color: "var(--text-2)", marginBottom: "15px" }}>
-          Click on a state to automatically run a fact-check for that region.
-        </p>
-        <MapView onRegionSelect={(stateName) => {
-          setRegion(stateName);
-          if (claim) handleCheck(stateName); // Auto-check if claim exists
-        }} />
-      </div>
+      {result && <ResultCard result={result} isRegional={true} />}
     </div>
   );
 }
