@@ -1,19 +1,30 @@
-const BASE_URL = "https://ai-powered-fake-news-detector-production.up.railway.app";
+import axios from 'axios';
 
-export async function apiRequest(endpoint, body, method = "POST") {
-  const options = {
-    method,
-    headers: { "Content-Type": "application/json" },
-  };
-  if (body) options.body = JSON.stringify(body);
+const API_BASE_URL = 'http://localhost:8000'; // Update to your production URL later
 
-  const res = await fetch(`${BASE_URL}${endpoint}`, options);
-  const data = await res.json().catch(() => ({}));
+const api = axios.create({
+  baseURL: API_BASE_URL,
+});
 
-  if (!res.ok) throw new Error(data.error || data.detail || "Request failed");
-  return data;
-}
+// Automatically attach JWT token to every request if it exists
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export async function apiGet(endpoint) {
-  return apiRequest(endpoint, null, "GET");
-}
+export const newsService = {
+  // Fact Detector (Global)
+  verifyGlobal: (claim) => api.post('/verify', { claim }),
+
+  // Geo Analysis (Regional)
+  verifyRegional: (claim, region) => api.post('/geo-verify', { claim, region }),
+
+  // History / Bookmarks
+  getHistory: () => api.get('/claims/history'),
+  saveClaim: (claimData) => api.post('/claims/save', claimData),
+};
+
+export default api;
