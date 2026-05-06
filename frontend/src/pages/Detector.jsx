@@ -1,29 +1,20 @@
-import { useState } from "react";
-import { verifyNews } from "../services/newsService";
-import ResultCard from "../components/ResultCard";
-import toast from "react-hot-toast";
+import React, { useState } from 'react';
+import { newsService } from '../services/api';
+import ResultCard from '../components/ResultCard';
+import Loader from '../components/Loader';
 
 export default function Detector() {
-  const [claim, setClaim] = useState("");
+  const [claim, setClaim] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleCheck = async () => {
-    if (!claim.trim()) {
-      toast.error("Please enter a claim to verify.");
-      return;
-    }
-
+  const handleVerify = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setResult(null);
-
-      // Uses your centralized service to call the backend
-      const data = await verifyNews(claim);
-      setResult(data);
-      toast.success("Analysis complete!");
-    } catch (err) {
-      toast.error(err.message || "Analysis failed. Please try again.");
+      const response = await newsService.verifyGlobal(claim);
+      setResult(response.data);
+    } catch (error) {
+      console.error("Global verification failed", error);
     } finally {
       setLoading(false);
     }
@@ -31,29 +22,19 @@ export default function Detector() {
 
   return (
     <div className="content-wrapper">
-      <h1 className="section-title">🔍 AI Fact Checker</h1>
-
-      <div className="input-group">
-        <textarea
-          className="textarea"
-          placeholder="Enter a news headline or claim to fact-check…"
+      <h2 className="section-title">🧠 Fact Detector</h2>
+      <div className="search-container">
+        <textarea 
+          placeholder="Enter a news headline or claim to verify globally..."
           value={claim}
           onChange={(e) => setClaim(e.target.value)}
         />
+        <button onClick={handleVerify} disabled={loading || !claim}>
+          {loading ? <Loader /> : 'Verify Claim'}
+        </button>
       </div>
 
-      <button 
-        className="btn btn-primary" 
-        onClick={handleCheck}
-        disabled={loading || !claim.trim()}
-      >
-        {loading ? "Checking…" : "Check Fact"}
-      </button>
-
-      {/* Result Card is rendered here when data comes back */}
-      {result && !loading && (
-        <ResultCard result={result} />
-      )}
+      {result && <ResultCard result={result} />}
     </div>
   );
 }
