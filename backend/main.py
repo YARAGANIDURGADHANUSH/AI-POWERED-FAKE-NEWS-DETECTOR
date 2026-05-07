@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware # ✅ IMPORT ADDED
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
@@ -10,6 +11,19 @@ from analyzer_logic import run_geo_analyzer
 load_dotenv()
 
 app = FastAPI(title="FakeNews AI API")
+
+# ✅ THE CORS FIX: Tell Railway to trust your Vercel UI
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://ai-powered-fake-news-detector.vercel.app",
+        "https://ai-powered-fake-news-detector-jm4xvzb04.vercel.app",
+        "*" # (Optional wildcard: temporarily allows ALL websites to test the connection)
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class ClaimRequest(BaseModel):
     claim: str
