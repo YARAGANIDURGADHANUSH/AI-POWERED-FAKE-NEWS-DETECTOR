@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000'; // Update to your production URL later
+const API_BASE_URL = 'https://ai-powered-fake-news-detector-production.up.railway.app/'; // Update to your production URL later
 
 const api = axios.create({
   baseURL: API_BASE_URL,
