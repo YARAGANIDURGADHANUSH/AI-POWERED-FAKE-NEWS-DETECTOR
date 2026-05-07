@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { newsService } from "../services/api"; // ✅ Now using your Railway-connected service
 
 export default function SavedClaims() {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,28 +16,17 @@ export default function SavedClaims() {
       return;
     }
 
-    const fetchHistory = async () => {
-      try {
-        // Assuming your FastAPI endpoint for getting history is /claims/history
-        const response = await fetch("http://localhost:8000/claims/history", {
-          headers: {
-            "Authorization": `Bearer ${token}`, // Send JWT securely
-            "Content-Type": "application/json"
-          }
-        });
-
-        if (!response.ok) throw new Error("Failed to fetch history");
-        
-        const data = await response.json();
-        setHistory(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
+    // ✅ Fetching securely via the API service
+    newsService.getHistory()
+      .then(res => {
+        setHistory(res.data);
         setLoading(false);
-      }
-    };
-
-    fetchHistory();
+      })
+      .catch(err => {
+        console.error(err);
+        setError("Failed to fetch history");
+        setLoading(false);
+      });
   }, [token, navigate]);
 
   return (
@@ -47,7 +37,7 @@ export default function SavedClaims() {
       {loading ? (
         <p>Loading your history...</p>
       ) : error ? (
-        <p style={{ color: '#ff6b6b' }}>Error: {error}</p>
+        <p style={{ color: '#ff6b6b' }}>{error}</p>
       ) : history.length === 0 ? (
         <div className="source-card" style={{ padding: '30px', textAlign: 'center', marginTop: '20px' }}>
           <p>You haven't saved any claims yet.</p>
@@ -76,7 +66,6 @@ export default function SavedClaims() {
               </div>
               <p style={{ fontSize: '13px', color: '#bbb', margin: '0' }}>{item.explanation}</p>
               
-              {/* Optional: Show region tag if it was a Geo Analysis */}
               {item.region && (
                 <span style={{ fontSize: '12px', color: 'var(--accent-cyan)', marginTop: '10px', display: 'inline-block' }}>
                   📍 {item.region} Analysis
