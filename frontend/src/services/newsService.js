@@ -1,15 +1,15 @@
 import { apiRequest } from "./api";
 
-// Verify global news/fact
+// Global fact verification
 export const verifyNews = (news) =>
   apiRequest("/verify", {
-    text: news
+    claim: news
   });
 
-// Verify region-specific news/fact
+// Regional / Geo verification
 export const geoVerify = (news, region) =>
   apiRequest("/geo-verify", {
-    text: news,
-    country: "india",
-    region
+    claim: news,
+    region,
+    country: "India"
   });
