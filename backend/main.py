@@ -17,7 +17,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://ai-powered-fake-news-detector.vercel.app",
-        "https://ai-powered-fake-news-detector-jm4xvzb04.vercel.app",
         "*" # (Optional wildcard: temporarily allows ALL websites to test the connection)
     ],
     allow_credentials=True,
